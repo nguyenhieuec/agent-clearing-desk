@@ -1,333 +1,285 @@
 import type {
   AgentKey,
   AuditLog,
+  ClearingStatus,
+  Millicents,
   Organization,
+  Protocol,
   Receipt,
+  ReceiptPayload,
   UsageEvent,
-  UsageSummary,
-  UsageSummaryItem,
 } from './types.ts';
 import {
-  computeReceiptHash,
+  canonicalReceiptPayload,
   generateAgentKeyCredentials,
-  generateOrgId,
   randomHex,
   sha256Hex,
+  signReceiptPayload,
 } from './crypto.ts';
 
-function numOrZero(val: number | null | undefined): number {
-  return val ?? 0;
-}
-
-/**
- * Find agent key by raw key string (hashes raw key to look up in DB).
- */
-export async function getAgentKeyByRawKey(
-  db: D1Database,
-  rawKey: string
-): Promise<AgentKey | null> {
+export async function getAgentKeyByRawKey(db: D1Database, rawKey: string): Promise<AgentKey | null> {
   const hash = await sha256Hex(rawKey.trim());
-  const res = await db
-    .prepare('SELECT * FROM agent_keys WHERE key_hash = ? LIMIT 1')
-    .bind(hash)
-    .first<AgentKey>();
-  return res ?? null;
+  return db.prepare('SELECT * FROM agent_keys WHERE key_hash = ?').bind(hash).first<AgentKey>();
 }
 
-/**
- * Find agent key by key_id.
- */
-export async function getAgentKeyById(
-  db: D1Database,
-  keyId: string
-): Promise<AgentKey | null> {
-  const res = await db
-    .prepare('SELECT * FROM agent_keys WHERE key_id = ? LIMIT 1')
-    .bind(keyId)
-    .first<AgentKey>();
-  return res ?? null;
+export async function getAgentKeyById(db: D1Database, keyId: string): Promise<AgentKey | null> {
+  return db.prepare('SELECT * FROM agent_keys WHERE key_id = ?').bind(keyId).first<AgentKey>();
 }
 
-/**
- * Create a new organization.
- */
-export async function createOrganization(
-  db: D1Database,
-  name: string,
-  email: string
-): Promise<Organization> {
-  const id = generateOrgId();
-  const now = Date.now();
+export async function createOrganization(db: D1Database, name: string, email: string): Promise<Organization> {
+  const org: Organization = { id: `org_${randomHex(8)}`, name, email, created_at: Date.now() };
   await db
-    .prepare(
-      'INSERT INTO organizations (id, name, email, created_at) VALUES (?, ?, ?, ?)'
-    )
-    .bind(id, name, email, now)
+    .prepare('INSERT INTO organizations (id, name, email, created_at) VALUES (?, ?, ?, ?)')
+    .bind(org.id, org.name, org.email, org.created_at)
     .run();
-  return { id, name, email, created_at: now };
+  return org;
 }
 
-/**
- * List all organizations.
- */
+export async function getOrganization(db: D1Database, id: string): Promise<Organization | null> {
+  return db.prepare('SELECT * FROM organizations WHERE id = ?').bind(id).first<Organization>();
+}
+
+export async function findOrganizationByName(db: D1Database, name: string): Promise<Organization | null> {
+  return db.prepare('SELECT * FROM organizations WHERE name = ? LIMIT 1').bind(name).first<Organization>();
+}
+
 export async function listOrganizations(db: D1Database): Promise<Organization[]> {
-  const res = await db
-    .prepare('SELECT * FROM organizations ORDER BY created_at DESC')
-    .all<Organization>();
-  return res.results ?? [];
+  const res = await db.prepare('SELECT * FROM organizations ORDER BY created_at DESC').all<Organization>();
+  return res.results;
 }
 
-/**
- * Create a new agent key for an organization.
- */
+export interface NewAgentKey {
+  orgId: string;
+  name: string;
+  budgetMc: Millicents;
+  allowlist: string[];
+  priceOverrides?: Record<string, Millicents>;
+  expiresAt?: number | null;
+}
+
 export async function createAgentKey(
   db: D1Database,
-  params: {
-    orgId: string;
-    name: string;
-    budgetCents: number;
-    allowlist?: string[];
-    perCallPriceCents?: number;
-    toolPricingOverrides?: Record<string, number>;
-  }
+  params: NewAgentKey
 ): Promise<{ rawKey: string; key: AgentKey }> {
   const creds = await generateAgentKeyCredentials();
   const now = Date.now();
-  const allowlistJson = JSON.stringify(params.allowlist ?? ['*']);
-  const overridesJson = JSON.stringify(params.toolPricingOverrides ?? {});
-  const perCallPrice = params.perCallPriceCents ?? 5;
-
+  const key: AgentKey = {
+    key_hash: creds.keyHash,
+    key_id: `key_${randomHex(8)}`,
+    key_prefix: creds.keyPrefix,
+    org_id: params.orgId,
+    name: params.name,
+    budget_mc: params.budgetMc,
+    spent_mc: 0,
+    allowlist: JSON.stringify(params.allowlist),
+    price_overrides: JSON.stringify(params.priceOverrides ?? {}),
+    status: 'active',
+    expires_at: params.expiresAt ?? null,
+    created_at: now,
+    updated_at: now,
+  };
   await db
     .prepare(
-      `INSERT INTO agent_keys (
-        key_hash, key_id, key_prefix, org_id, name,
-        budget_cents, spent_cents, allowlist, per_call_price_cents,
-        tool_pricing_overrides, status, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, 'active', ?, ?)`
+      `INSERT INTO agent_keys (key_hash, key_id, key_prefix, org_id, name, budget_mc, spent_mc,
+        allowlist, price_overrides, status, expires_at, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, 'active', ?, ?, ?)`
     )
     .bind(
-      creds.keyHash,
-      creds.keyId,
-      creds.keyPrefix,
-      params.orgId,
-      params.name,
-      params.budgetCents,
-      allowlistJson,
-      perCallPrice,
-      overridesJson,
+      key.key_hash,
+      key.key_id,
+      key.key_prefix,
+      key.org_id,
+      key.name,
+      key.budget_mc,
+      key.allowlist,
+      key.price_overrides,
+      key.expires_at,
       now,
       now
     )
     .run();
-
-  const key: AgentKey = {
-    key_hash: creds.keyHash,
-    key_id: creds.keyId,
-    key_prefix: creds.keyPrefix,
-    org_id: params.orgId,
-    name: params.name,
-    budget_cents: params.budgetCents,
-    spent_cents: 0,
-    allowlist: allowlistJson,
-    per_call_price_cents: perCallPrice,
-    tool_pricing_overrides: overridesJson,
-    status: 'active',
-    created_at: now,
-    updated_at: now,
-  };
-
   return { rawKey: creds.rawKey, key };
 }
 
-/**
- * Rotate an existing agent key.
- * Preserves key_id, budget, spent, allowlist, and organization,
- * while updating the key hash and prefix to the newly generated credentials.
- */
-export async function rotateAgentKey(
-  db: D1Database,
-  keyId: string
-): Promise<{ rawKey: string; key: AgentKey }> {
-  const existing = await getAgentKeyById(db, keyId);
-  if (!existing) {
-    throw new Error(`Agent key ${keyId} not found`);
-  }
-
+/** New secret for the same key_id: budget, spend, allowlist and ledger history stay. */
+export async function rotateAgentKey(db: D1Database, keyId: string): Promise<{ rawKey: string; key: AgentKey } | null> {
   const creds = await generateAgentKeyCredentials();
-  const now = Date.now();
-
-  await db
-    .prepare(
-      `UPDATE agent_keys
-       SET key_hash = ?, key_prefix = ?, updated_at = ?
-       WHERE key_id = ?`
-    )
-    .bind(creds.keyHash, creds.keyPrefix, now, keyId)
-    .run();
-
-  const updated: AgentKey = {
-    ...existing,
-    key_hash: creds.keyHash,
-    key_prefix: creds.keyPrefix,
-    updated_at: now,
-  };
-
-  return { rawKey: creds.rawKey, key: updated };
-}
-
-/**
- * Revoke an agent key.
- */
-export async function revokeAgentKey(db: D1Database, keyId: string): Promise<void> {
-  const now = Date.now();
-  await db
-    .prepare('UPDATE agent_keys SET status = ?, updated_at = ? WHERE key_id = ?')
-    .bind('revoked', now, keyId)
-    .run();
-}
-
-/**
- * Update budget on an agent key.
- */
-export async function updateAgentBudget(
-  db: D1Database,
-  keyId: string,
-  newBudgetCents: number
-): Promise<AgentKey> {
-  const now = Date.now();
-  await db
-    .prepare('UPDATE agent_keys SET budget_cents = ?, updated_at = ? WHERE key_id = ?')
-    .bind(newBudgetCents, now, keyId)
-    .run();
-  const key = await getAgentKeyById(db, keyId);
-  if (!key) throw new Error('Key not found');
-  return key;
-}
-
-/**
- * List all agent keys, optionally filtered by org.
- */
-export async function listAgentKeys(
-  db: D1Database,
-  orgId?: string
-): Promise<AgentKey[]> {
-  if (orgId) {
-    const res = await db
-      .prepare('SELECT * FROM agent_keys WHERE org_id = ? ORDER BY created_at DESC')
-      .bind(orgId)
-      .all<AgentKey>();
-    return res.results ?? [];
-  }
   const res = await db
-    .prepare('SELECT * FROM agent_keys ORDER BY created_at DESC')
-    .all<AgentKey>();
-  return res.results ?? [];
+    .prepare(`UPDATE agent_keys SET key_hash = ?, key_prefix = ?, updated_at = ? WHERE key_id = ? AND status = 'active'`)
+    .bind(creds.keyHash, creds.keyPrefix, Date.now(), keyId)
+    .run();
+  if (res.meta.changes !== 1) return null;
+  const key = await getAgentKeyById(db, keyId);
+  return key ? { rawKey: creds.rawKey, key } : null;
 }
 
-function currentUtcPeriod(nowMs: number): string {
-  const d = new Date(nowMs);
+export async function revokeAgentKey(db: D1Database, keyId: string): Promise<boolean> {
+  const res = await db
+    .prepare(`UPDATE agent_keys SET status = 'revoked', updated_at = ? WHERE key_id = ?`)
+    .bind(Date.now(), keyId)
+    .run();
+  return res.meta.changes === 1;
+}
+
+/** Set a new budget; refused (null) when it would sit below what is already spent. */
+export async function updateAgentBudget(db: D1Database, keyId: string, budgetMc: Millicents): Promise<AgentKey | null> {
+  const res = await db
+    .prepare('UPDATE agent_keys SET budget_mc = ?, updated_at = ? WHERE key_id = ? AND spent_mc <= ?')
+    .bind(budgetMc, Date.now(), keyId, budgetMc)
+    .run();
+  return res.meta.changes === 1 ? getAgentKeyById(db, keyId) : null;
+}
+
+export async function listAgentKeys(db: D1Database, limit = 100): Promise<AgentKey[]> {
+  const res = await db
+    .prepare('SELECT * FROM agent_keys ORDER BY created_at DESC LIMIT ?')
+    .bind(limit)
+    .all<AgentKey>();
+  return res.results;
+}
+
+export async function countKeysCreatedSince(db: D1Database, orgId: string, sinceMs: number): Promise<number> {
+  const row = await db
+    .prepare('SELECT COUNT(*) AS n FROM agent_keys WHERE org_id = ? AND created_at >= ?')
+    .bind(orgId, sinceMs)
+    .first<{ n: number }>();
+  return row?.n ?? 0;
+}
+
+/**
+ * Reserve the call price before the upstream runs. One conditional UPDATE is the
+ * whole budget gate: D1 runs it atomically, so N parallel calls on a key with room
+ * for one see exactly one change and N-1 refusals. Zero-price calls skip it.
+ */
+export async function reserveBudget(db: D1Database, keyId: string, priceMc: Millicents, now: number): Promise<boolean> {
+  if (priceMc === 0) return true;
+  const res = await db
+    .prepare(
+      `UPDATE agent_keys SET spent_mc = spent_mc + ?1, updated_at = ?2
+       WHERE key_id = ?3 AND status = 'active' AND (expires_at IS NULL OR expires_at > ?2)
+         AND spent_mc + ?1 <= budget_mc`
+    )
+    .bind(priceMc, now, keyId)
+    .run();
+  return res.meta.changes === 1;
+}
+
+function utcPeriod(ms: number): string {
+  const d = new Date(ms);
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
 }
 
+export interface LedgerEntry {
+  key: AgentKey;
+  toolName: string;
+  upstream: string;
+  protocol: Protocol;
+  status: ClearingStatus;
+  statusCode: number;
+  paramsSummary: string;
+  paramsSha256: string;
+  resultSha256: string | null;
+  errorDetail: string | null;
+  costMc: Millicents;
+  priceMc: Millicents;
+  /** Amount reserved by reserveBudget that must be handed back (upstream failed). */
+  refundMc: Millicents;
+  latencyMs: number;
+  signingKey: string;
+}
+
 /**
- * Atomically record clearing transaction in D1:
- * - Insert audit_logs row
- * - Insert receipts row (sharing the 12-byte transaction suffix so aud_<hex> <-> rcpt_<hex>)
- * - Update key spent_cents (if billable)
- * - Update usage_events row (if billable)
- * Executed in a single batch to conserve D1 write quota.
+ * Write one ledger entry in a single D1 batch: audit row, signed receipt, usage
+ * counter on success, and the refund of the reservation on failure.
  */
-export async function recordClearingTransaction(
-  db: D1Database,
-  params: {
-    key: AgentKey;
-    toolName: string;
-    protocol: 'http' | 'mcp';
-    requestMethod: string;
-    status: 'success' | 'refused_budget' | 'refused_allowlist' | 'error';
-    statusCode: number;
-    paramsSummary?: string;
-    costCents: number;
-    priceCents: number;
-    marginCents: number;
-    signingKey: string;
-  }
-): Promise<{ auditLog: AuditLog; receipt: Receipt }> {
+export async function recordLedgerEntry(db: D1Database, e: LedgerEntry): Promise<{ auditLog: AuditLog; receipt: Receipt }> {
   const now = Date.now();
-  const txSuffix = randomHex(12);
-  const auditId = `aud_${txSuffix}`;
-  const receiptId = `rcpt_${txSuffix}`;
-  const isBillable = params.status === 'success';
-  const billableAmount = isBillable ? params.priceCents : 0;
-
-  const receiptHash = await computeReceiptHash(params.signingKey, {
-    receiptId,
-    auditLogId: auditId,
-    keyId: params.key.key_id,
-    orgId: params.key.org_id,
-    toolName: params.toolName,
-    amountCents: billableAmount,
-    currency: 'USD',
-    issuedAt: now,
-  });
-
+  const suffix = randomHex(12);
+  const billed = e.status === 'success';
+  const priceMc = billed ? e.priceMc : 0;
+  const costMc = billed ? e.costMc : 0;
   const auditLog: AuditLog = {
-    id: auditId,
-    org_id: params.key.org_id,
-    key_id: params.key.key_id,
-    tool_name: params.toolName,
-    protocol: params.protocol,
-    request_method: params.requestMethod,
-    status: params.status,
-    status_code: params.statusCode,
-    params_summary: params.paramsSummary ?? null,
-    cost_cents: isBillable ? params.costCents : 0,
-    price_cents: billableAmount,
-    margin_cents: isBillable ? params.marginCents : 0,
+    id: `aud_${suffix}`,
+    org_id: e.key.org_id,
+    key_id: e.key.key_id,
+    tool_name: e.toolName,
+    upstream: e.upstream,
+    protocol: e.protocol,
+    status: e.status,
+    status_code: e.statusCode,
+    params_summary: e.paramsSummary,
+    params_sha256: e.paramsSha256,
+    result_sha256: e.resultSha256,
+    error_detail: e.errorDetail,
+    cost_mc: costMc,
+    price_mc: priceMc,
+    margin_mc: priceMc - costMc,
+    latency_ms: e.latencyMs,
     created_at: now,
   };
-
-  const receipt: Receipt = {
-    id: receiptId,
-    audit_log_id: auditId,
-    key_id: params.key.key_id,
-    org_id: params.key.org_id,
-    tool_name: params.toolName,
-    amount_cents: billableAmount,
+  const payload: ReceiptPayload = {
+    v: 'cd-receipt-v3',
+    receipt_id: `rcpt_${suffix}`,
+    audit_log_id: auditLog.id,
+    org_id: auditLog.org_id,
+    key_id: auditLog.key_id,
+    tool: e.toolName,
+    upstream: e.upstream,
+    protocol: e.protocol,
+    outcome: e.status,
+    http_status: e.statusCode,
+    amount_mc: priceMc,
+    cost_mc: costMc,
     currency: 'USD',
-    receipt_hash: receiptHash,
+    params_sha256: e.paramsSha256,
+    result_sha256: e.resultSha256,
+    issued_at: now,
+  };
+  const payloadText = canonicalReceiptPayload(payload);
+  const { signature, kid } = await signReceiptPayload(e.signingKey, payloadText);
+  const receipt: Receipt = {
+    id: payload.receipt_id,
+    audit_log_id: auditLog.id,
+    key_id: auditLog.key_id,
+    org_id: auditLog.org_id,
+    tool_name: e.toolName,
+    amount_mc: priceMc,
+    payload: payloadText,
+    signature,
+    key_fingerprint: kid,
     issued_at: now,
   };
 
-  const period = currentUtcPeriod(now);
-  const statements: D1PreparedStatement[] = [
+  const statements = [
     db
       .prepare(
-        `INSERT INTO audit_logs (
-          id, org_id, key_id, tool_name, protocol, request_method,
-          status, status_code, params_summary, cost_cents, price_cents, margin_cents, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO audit_logs (id, org_id, key_id, tool_name, upstream, protocol, status, status_code,
+          params_summary, params_sha256, result_sha256, error_detail, cost_mc, price_mc, margin_mc, latency_ms, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .bind(
         auditLog.id,
         auditLog.org_id,
         auditLog.key_id,
         auditLog.tool_name,
+        auditLog.upstream,
         auditLog.protocol,
-        auditLog.request_method,
         auditLog.status,
         auditLog.status_code,
         auditLog.params_summary,
-        auditLog.cost_cents,
-        auditLog.price_cents,
-        auditLog.margin_cents,
+        auditLog.params_sha256,
+        auditLog.result_sha256,
+        auditLog.error_detail,
+        auditLog.cost_mc,
+        auditLog.price_mc,
+        auditLog.margin_mc,
+        auditLog.latency_ms,
         auditLog.created_at
       ),
     db
       .prepare(
-        `INSERT INTO receipts (
-          id, audit_log_id, key_id, org_id, tool_name, amount_cents, currency, receipt_hash, issued_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO receipts (id, audit_log_id, key_id, org_id, tool_name, amount_mc, payload, signature, key_fingerprint, issued_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .bind(
         receipt.id,
@@ -335,185 +287,107 @@ export async function recordClearingTransaction(
         receipt.key_id,
         receipt.org_id,
         receipt.tool_name,
-        receipt.amount_cents,
-        receipt.currency,
-        receipt.receipt_hash,
+        receipt.amount_mc,
+        receipt.payload,
+        receipt.signature,
+        receipt.key_fingerprint,
         receipt.issued_at
       ),
   ];
-
-  if (billableAmount > 0) {
+  if (e.refundMc > 0) {
+    statements.push(
+      db
+        .prepare('UPDATE agent_keys SET spent_mc = spent_mc - ?, updated_at = ? WHERE key_id = ?')
+        .bind(e.refundMc, now, e.key.key_id)
+    );
+  }
+  if (billed) {
     statements.push(
       db
         .prepare(
-          'UPDATE agent_keys SET spent_cents = spent_cents + ?, updated_at = ? WHERE key_id = ?'
+          `INSERT INTO usage_events (key_id, event, period, count, spent_mc) VALUES (?, ?, ?, 1, ?)
+           ON CONFLICT(key_id, event, period) DO UPDATE SET count = count + 1, spent_mc = spent_mc + excluded.spent_mc`
         )
-        .bind(billableAmount, now, params.key.key_id),
-      db
-        .prepare(
-          `INSERT INTO usage_events (key_id, event, period, count, spent_cents)
-           VALUES (?, ?, ?, 1, ?)
-           ON CONFLICT(key_id, event, period) DO UPDATE SET
-             count = count + 1,
-             spent_cents = spent_cents + excluded.spent_cents`
-        )
-        .bind(params.key.key_id, params.toolName, period, billableAmount)
+        .bind(e.key.key_id, e.toolName, utcPeriod(now), priceMc)
     );
   }
-
   await db.batch(statements);
   return { auditLog, receipt };
 }
 
-/**
- * Retrieve receipt by ID.
- */
-export async function getReceiptById(
-  db: D1Database,
-  receiptId: string
-): Promise<Receipt | null> {
+export async function getReceiptById(db: D1Database, receiptId: string): Promise<Receipt | null> {
+  return db.prepare('SELECT * FROM receipts WHERE id = ?').bind(receiptId).first<Receipt>();
+}
+
+export async function listReceipts(db: D1Database, filter: { keyId?: string }, limit = 50): Promise<Receipt[]> {
+  const res = filter.keyId
+    ? await db
+        .prepare('SELECT * FROM receipts WHERE key_id = ? ORDER BY issued_at DESC LIMIT ?')
+        .bind(filter.keyId, limit)
+        .all<Receipt>()
+    : await db.prepare('SELECT * FROM receipts ORDER BY issued_at DESC LIMIT ?').bind(limit).all<Receipt>();
+  return res.results;
+}
+
+export async function listAuditLogs(db: D1Database, filter: { keyId?: string }, limit = 50): Promise<AuditLog[]> {
+  const res = filter.keyId
+    ? await db
+        .prepare('SELECT * FROM audit_logs WHERE key_id = ? ORDER BY created_at DESC LIMIT ?')
+        .bind(filter.keyId, limit)
+        .all<AuditLog>()
+    : await db.prepare('SELECT * FROM audit_logs ORDER BY created_at DESC LIMIT ?').bind(limit).all<AuditLog>();
+  return res.results;
+}
+
+export async function getUsageEvents(db: D1Database, keyId: string, period: string): Promise<UsageEvent[]> {
   const res = await db
-    .prepare('SELECT * FROM receipts WHERE id = ? LIMIT 1')
-    .bind(receiptId)
-    .first<Receipt>();
-  return res ?? null;
-}
-
-/**
- * List recent receipts.
- */
-export async function listReceipts(
-  db: D1Database,
-  keyId?: string,
-  limit = 50
-): Promise<Receipt[]> {
-  if (keyId) {
-    const res = await db
-      .prepare('SELECT * FROM receipts WHERE key_id = ? ORDER BY issued_at DESC LIMIT ?')
-      .bind(keyId, limit)
-      .all<Receipt>();
-    return res.results ?? [];
-  }
-  const res = await db
-    .prepare('SELECT * FROM receipts ORDER BY issued_at DESC LIMIT ?')
-    .bind(limit)
-    .all<Receipt>();
-  return res.results ?? [];
-}
-
-/**
- * List recent audit logs.
- */
-export async function listAuditLogs(
-  db: D1Database,
-  keyId?: string,
-  limit = 50
-): Promise<AuditLog[]> {
-  if (keyId) {
-    const res = await db
-      .prepare('SELECT * FROM audit_logs WHERE key_id = ? ORDER BY created_at DESC LIMIT ?')
-      .bind(keyId, limit)
-      .all<AuditLog>();
-    return res.results ?? [];
-  }
-  const res = await db
-    .prepare('SELECT * FROM audit_logs ORDER BY created_at DESC LIMIT ?')
-      .bind(limit)
-      .all<AuditLog>();
-  return res.results ?? [];
-}
-
-function toUsageSummaryItem(e: UsageEvent): UsageSummaryItem {
-  return {
-    event: e.event,
-    count: e.count,
-    spent_cents: e.spent_cents,
-    price_per_event_cents:
-      e.count > 0 ? Math.round((e.spent_cents / e.count) * 100) / 100 : 0,
-  };
-}
-
-/**
- * Get usage summary matching openkrill /v1/usage contract for an agent key.
- */
-export async function getUsage(
-  db: D1Database,
-  keyId: string,
-  period?: string
-): Promise<UsageSummary> {
-  const key = await getAgentKeyById(db, keyId);
-  if (!key) {
-    throw new Error(`Key ${keyId} not found`);
-  }
-
-  const selectedPeriod = period || currentUtcPeriod(Date.now());
-  const events = await db
-    .prepare(
-      'SELECT * FROM usage_events WHERE key_id = ? AND period = ? ORDER BY event ASC'
-    )
-    .bind(keyId, selectedPeriod)
+    .prepare('SELECT * FROM usage_events WHERE key_id = ? AND period = ? ORDER BY event')
+    .bind(keyId, period)
     .all<UsageEvent>();
-
-  const rows = events.results ?? [];
-  const items = rows.map(toUsageSummaryItem);
-  const usage: Record<string, number> = {};
-  let totalEvents = 0;
-  for (const item of items) {
-    usage[item.event] = item.count;
-    totalEvents += item.count;
-  }
-
-  return {
-    period: selectedPeriod,
-    key_id: keyId,
-    budget_cents: key.budget_cents,
-    spent_cents: key.spent_cents,
-    remaining_budget_cents: Math.max(0, key.budget_cents - key.spent_cents),
-    items,
-    usage,
-    total_events: totalEvents,
-  };
+  return res.results;
 }
 
-/**
- * Aggregate overview statistics for the admin dashboard.
- */
-export async function getOverviewStats(db: D1Database): Promise<{
-  totalOrgs: number;
-  totalKeys: number;
-  totalBudgetCents: number;
-  totalSpentCents: number;
-  totalReceipts: number;
-  totalMarginCents: number;
-}> {
-  const orgCount = await db
-    .prepare('SELECT COUNT(*) as count FROM organizations')
-    .first<{ count: number }>();
+export function currentPeriod(): string {
+  return utcPeriod(Date.now());
+}
 
-  const keyStats = await db
-    .prepare(
-      `SELECT
-        COUNT(*) as count,
-        COALESCE(SUM(budget_cents), 0) as total_budget,
-        COALESCE(SUM(spent_cents), 0) as total_spent
+export interface OverviewStats {
+  orgs: number;
+  activeKeys: number;
+  budgetMc: Millicents;
+  spentMc: Millicents;
+  receipts: number;
+  costMc: Millicents;
+  marginMc: Millicents;
+  refusals: number;
+  upstreamErrors: number;
+}
+
+export async function getOverviewStats(db: D1Database): Promise<OverviewStats> {
+  const [orgs, keys, ledger] = await db.batch<Record<string, number>>([
+    db.prepare('SELECT COUNT(*) AS n FROM organizations'),
+    db.prepare(
+      `SELECT COUNT(*) AS n, COALESCE(SUM(budget_mc), 0) AS budget, COALESCE(SUM(spent_mc), 0) AS spent
        FROM agent_keys WHERE status = 'active'`
-    )
-    .first<{ count: number; total_budget: number; total_spent: number }>();
-
-  const receiptStats = await db
-    .prepare('SELECT COUNT(*) as count FROM receipts')
-    .first<{ count: number }>();
-
-  const marginStats = await db
-    .prepare('SELECT COALESCE(SUM(margin_cents), 0) as total_margin FROM audit_logs')
-    .first<{ total_margin: number }>();
-
+    ),
+    db.prepare(
+      `SELECT COUNT(*) AS n, COALESCE(SUM(cost_mc), 0) AS cost, COALESCE(SUM(margin_mc), 0) AS margin,
+        COALESCE(SUM(status IN ('refused_allowlist', 'refused_budget')), 0) AS refusals,
+        COALESCE(SUM(status = 'upstream_error'), 0) AS errors
+       FROM audit_logs`
+    ),
+  ]);
+  const k = keys.results[0];
+  const l = ledger.results[0];
   return {
-    totalOrgs: numOrZero(orgCount?.count),
-    totalKeys: numOrZero(keyStats?.count),
-    totalBudgetCents: numOrZero(keyStats?.total_budget),
-    totalSpentCents: numOrZero(keyStats?.total_spent),
-    totalReceipts: numOrZero(receiptStats?.count),
-    totalMarginCents: numOrZero(marginStats?.total_margin),
+    orgs: orgs.results[0].n,
+    activeKeys: k.n,
+    budgetMc: k.budget,
+    spentMc: k.spent,
+    receipts: l.n,
+    costMc: l.cost,
+    marginMc: l.margin,
+    refusals: l.refusals,
+    upstreamErrors: l.errors,
   };
 }

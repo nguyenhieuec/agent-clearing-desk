@@ -1,372 +1,134 @@
 import type { Env } from './types.ts';
+import type { GovernedTool } from './tools.ts';
+import { openkrillCredential } from './openkrill-auth.ts';
 
-export interface UpstreamToolResult {
-  ok: boolean;
-  status: number;
-  data: Record<string, unknown>;
-  error?: string;
+export type UpstreamResult =
+  | { ok: true; data: unknown }
+  | { ok: false; status: number; message: string };
+
+const DEFAULT_OPENKRILL = 'https://api.openkrill.app';
+
+function openkrillBase(env: Env): string {
+  return env.OPENKRILL_BASE_URL || DEFAULT_OPENKRILL;
 }
 
-const APP_SLUG_MAP: Record<string, string> = {
-  spotify: 'com.spotify.music',
-  'spotify mobile app': 'com.spotify.music',
-  facebook: '284882215',
-  instagram: '389801252',
-  whatsapp: '310633997',
-};
-
-function toStringArray(val: unknown, fallback: string): string[] {
-  if (Array.isArray(val)) return val.map(v => String(v));
-  const str = String(val || fallback).trim();
-  return str ? [str] : [fallback];
-}
-
-function resolveAppList(val: unknown): string[] {
-  const raw = toStringArray(val, 'com.spotify.music');
-  return raw.map(item => {
-    const lower = item.toLowerCase().trim();
-    return APP_SLUG_MAP[lower] || item;
-  });
-}
-
-function parseQty(args: Record<string, unknown>, itemsDesc: string): number {
-  const direct = Number(args.qty || args.quantity || 0);
-  if (!isNaN(direct) && direct > 0) return direct;
-  const match = itemsDesc.match(/(\d+)\s+/);
-  return match ? parseInt(match[1], 10) : 1;
-}
-
-function buildEuDutySummary(args: Record<string, unknown>): Record<string, unknown> {
-  const itemsDesc = String(args.items || args.description || 'items');
-  const qty = parseQty(args, itemsDesc);
-  const unitValueEur = Number(args.unit_value_eur || args.value_eur || 15);
-  const totalValueEur = Number((qty * unitValueEur).toFixed(2));
-  const dutyPerItemEur = 3.0;
-  const totalDutyEur = Number((qty * dutyPerItemEur).toFixed(2));
-  return {
-    regulation:
-      'Council Regulation (EU) 2026/382 & Commission Delegated Regulation (EU) 2026/1022',
-    item_description: itemsDesc,
-    item_count: qty,
-    unit_value_eur: unitValueEur,
-    consignment_value_eur: totalValueEur,
-    duty_rate_per_item_eur: dutyPerItemEur,
-    total_duty_eur: totalDutyEur,
-    currency: 'EUR',
-    eligible_for_flat_duty: totalValueEur <= 150,
-    status: 'calculated',
-  };
-}
-
-function parseVatInput(args: Record<string, unknown>): {
-  country: string;
-  vatNumber: string;
-  full: string;
-} {
-  const raw = String(args.vat_number || args.number || 'ATU33864707')
-    .replace(/\s+/g, '')
-    .toUpperCase();
-  const country = String(args.country || raw.slice(0, 2) || 'AT').toUpperCase();
-  const vatNumber = raw.startsWith(country) ? raw.slice(country.length) : raw;
-  return { country, vatNumber, full: `${country}${vatNumber}` };
-}
-
-function buildUpstreamHeaders(apiKey?: string): Record<string, string> {
-  const headers: Record<string, string> = {
+function headers(apiKey?: string): Record<string, string> {
+  const h: Record<string, string> = {
     'content-type': 'application/json',
     accept: 'application/json, text/event-stream',
     'user-agent': 'AgentClearingDesk/1.0',
   };
-  if (apiKey) {
-    headers['x-api-key'] = apiKey;
-  }
-  return headers;
+  if (apiKey) h['x-api-key'] = apiKey;
+  return h;
 }
 
-async function fetchJsonWithTimeout(
-  url: string,
-  headers: Record<string, string>,
-  body?: unknown,
-  method = 'POST'
-): Promise<{ ok: boolean; status: number; json: Record<string, unknown> | null }> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 6000);
+/** Streamable HTTP MCP servers may answer with one SSE message instead of plain JSON. */
+async function readJsonRpc(res: Response): Promise<Record<string, unknown>> {
+  const text = await res.text();
+  if (!(res.headers.get('content-type') || '').includes('text/event-stream')) {
+    return JSON.parse(text) as Record<string, unknown>;
+  }
+  const data = text
+    .split('\n')
+    .filter(line => line.startsWith('data:'))
+    .map(line => line.slice(5).trim())
+    .find(line => line.startsWith('{'));
+  if (!data) throw new Error('empty event stream from upstream');
+  return JSON.parse(data) as Record<string, unknown>;
+}
+
+function mcpResultData(result: Record<string, unknown>): unknown {
+  if (result.structuredContent !== undefined) return result.structuredContent;
+  const content = Array.isArray(result.content) ? (result.content as { type?: string; text?: string }[]) : [];
+  const text = content.filter(c => c.type === 'text').map(c => c.text ?? '').join('\n');
   try {
-    const res = await fetch(url, {
-      method,
-      headers,
-      body: body !== undefined ? JSON.stringify(body) : undefined,
-      signal: controller.signal,
-    });
-    if (!res.ok) return { ok: false, status: res.status, json: null };
-    const json = (await res.json()) as Record<string, unknown>;
-    return { ok: true, status: res.status, json };
-  } finally {
-    clearTimeout(timeout);
+    return JSON.parse(text);
+  } catch {
+    return { text };
   }
 }
 
-async function callOpenkrillMcpPlugin(
-  baseUrl: string,
-  apiKey: string | undefined,
-  pluginSlug: string,
-  mcpToolName: string,
-  mcpArgs: Record<string, unknown>
-): Promise<UpstreamToolResult | null> {
-  const endpoint = `${baseUrl}/plugins/${pluginSlug}/mcp`;
-  const rpcBody = {
-    jsonrpc: '2.0',
-    id: 1,
-    method: 'tools/call',
-    params: { name: mcpToolName, arguments: mcpArgs },
-  };
-  const res = await fetchJsonWithTimeout(endpoint, buildUpstreamHeaders(apiKey), rpcBody);
-  if (!res.ok || !res.json) return null;
-  const result = res.json.result as Record<string, unknown> | undefined;
-  if (!result || result.isError) return null;
-  const structured =
-    (result.structuredContent as Record<string, unknown> | undefined) || result;
-  return {
-    ok: true,
-    status: 200,
-    data: {
-      ...structured,
-      upstream_live: true,
-      upstream_endpoint: endpoint,
-    },
-  };
+function errorText(result: Record<string, unknown>): string {
+  const data = mcpResultData(result);
+  if (data && typeof data === 'object' && 'text' in data) return String((data as { text: unknown }).text);
+  return JSON.stringify(data).slice(0, 300);
 }
 
-async function callOpenkrillV1Tool(
-  baseUrl: string,
-  apiKey: string | undefined,
-  v1ToolName: string,
-  payload: Record<string, unknown>
-): Promise<UpstreamToolResult | null> {
-  const endpoint = `${baseUrl}/v1/tools/${encodeURIComponent(v1ToolName)}/run`;
-  const res = await fetchJsonWithTimeout(endpoint, buildUpstreamHeaders(apiKey), payload);
-  if (!res.ok || !res.json) return null;
-  return {
-    ok: true,
-    status: res.status,
-    data: {
-      ...res.json,
-      upstream_live: true,
-      upstream_endpoint: endpoint,
-    },
-  };
+async function callMcp(
+  env: Env,
+  tool: GovernedTool & { target: { kind: 'mcp' } },
+  args: Record<string, unknown>,
+  signal: AbortSignal
+): Promise<UpstreamResult> {
+  const { target } = tool;
+  const url = target.url.startsWith('/') ? `${openkrillBase(env)}${target.url}` : target.url;
+  const apiKey = target.auth === 'openkrill' ? await openkrillCredential(env) : undefined;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: headers(apiKey),
+    body: JSON.stringify({
+      jsonrpc: '2.0',
+      id: 1,
+      method: 'tools/call',
+      params: { name: target.tool, arguments: args },
+    }),
+    signal,
+  });
+  if (!res.ok) return { ok: false, status: res.status, message: `upstream HTTP ${res.status}` };
+  const rpc = await readJsonRpc(res);
+  if (rpc.error) {
+    const err = rpc.error as { message?: string };
+    return { ok: false, status: 502, message: err.message || 'upstream JSON-RPC error' };
+  }
+  const result = (rpc.result ?? {}) as Record<string, unknown>;
+  if (result.isError) return { ok: false, status: 502, message: errorText(result) };
+  return { ok: true, data: mcpResultData(result) };
 }
 
-const LIVE_HANDLERS: Record<
-  string,
-  (
-    baseUrl: string,
-    apiKey: string | undefined,
-    args: Record<string, unknown>
-  ) => Promise<UpstreamToolResult | null>
-> = {
-  eu_duty_estimate: async (baseUrl, apiKey, args) => {
-    const summary = buildEuDutySummary(args);
-    const line = {
-      description: String(summary.item_description),
-      origin: String(args.origin || 'CN').toUpperCase(),
-      qty: Number(summary.item_count),
-      unit_value_eur: Number(summary.unit_value_eur),
-    };
-    const mcpRes = await callOpenkrillMcpPlugin(
-      baseUrl,
-      apiKey,
-      'shop-duty',
-      'eu_duty_estimate',
-      { channel: String(args.channel || 'ioss'), lines: [line] }
-    );
-    if (!mcpRes) return null;
-    return {
-      ok: true,
-      status: 200,
-      data: { ...summary, ...mcpRes.data, total_duty_eur: summary.total_duty_eur },
-    };
-  },
-  list_jobs: (baseUrl, apiKey, args) =>
-    callOpenkrillV1Tool(baseUrl, apiKey, 'job-boards', {
-      companies: toStringArray(args.companies || args.company, 'airbnb'),
-      ...(args.keyword ? { keyword: String(args.keyword) } : {}),
-      maxJobsPerCompany: Number(args.maxJobsPerCompany || 5),
-      includeDescription: false,
-    }),
-  get_app_reviews: (baseUrl, apiKey, args) =>
-    callOpenkrillV1Tool(baseUrl, apiKey, 'app-reviews', {
-      apps: resolveAppList(args.apps || args.app),
-      countries: toStringArray(args.countries, 'us'),
-      maxReviewsPerApp: Number(args.maxReviewsPerApp || 5),
-    }),
-  get_transcript: (baseUrl, apiKey, args) =>
-    callOpenkrillV1Tool(baseUrl, apiKey, 'yt-transcripts', {
-      video: String(args.video || args.url || 'dQw4w9WgXcQ'),
-      format: String(args.format || 'text'),
-    }),
-  find_tariff_codes: (baseUrl, apiKey, args) =>
-    callOpenkrillMcpPlugin(baseUrl, apiKey, 'tariffs', 'find_tariff_codes', {
-      description: String(args.query || args.description || 'ceramic coffee mug'),
-      country: String(args.country || 'US').toUpperCase(),
-    }),
-  check_vat_number: (baseUrl, apiKey, args) => {
-    const parsed = parseVatInput(args);
-    return callOpenkrillMcpPlugin(baseUrl, apiKey, 'eu-business', 'check_vat_number', {
-      country: parsed.country,
-      vatNumber: parsed.vatNumber,
-    });
-  },
-};
-
-const CANONICAL_TOOL_KEY: Record<string, string> = {
-  eu_duty_estimate: 'eu_duty_estimate',
-  shop_duty: 'eu_duty_estimate',
-  list_jobs: 'list_jobs',
-  job_boards: 'list_jobs',
-  get_app_reviews: 'get_app_reviews',
-  app_reviews: 'get_app_reviews',
-  get_transcript: 'get_transcript',
-  yt_transcripts: 'get_transcript',
-  find_tariff_codes: 'find_tariff_codes',
-  tariffs: 'find_tariff_codes',
-  check_vat_number: 'check_vat_number',
-  eu_business: 'check_vat_number',
-};
+async function callRest(
+  env: Env,
+  tool: GovernedTool & { target: { kind: 'rest' } },
+  args: Record<string, unknown>,
+  signal: AbortSignal
+): Promise<UpstreamResult> {
+  const url = `${openkrillBase(env)}/v1/tools/${encodeURIComponent(tool.target.tool)}/run`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: headers(await openkrillCredential(env)),
+    body: JSON.stringify(args),
+    signal,
+  });
+  const body = (await res.json().catch(() => null)) as Record<string, unknown> | null;
+  if (!res.ok) {
+    const err = body?.error as { message?: string } | undefined;
+    return { ok: false, status: res.status, message: err?.message || `upstream HTTP ${res.status}` };
+  }
+  return { ok: true, data: body };
+}
 
 /**
- * Execute tool against upstream openkrill API or fallback handler.
+ * Run a governed tool on its upstream. Every failure (HTTP error, tool error, timeout,
+ * bad payload) comes back as ok:false; the desk never substitutes its own data.
  */
 export async function executeUpstreamTool(
   env: Env,
-  toolName: string,
+  tool: GovernedTool,
   args: Record<string, unknown>
-): Promise<UpstreamToolResult> {
-  const baseUrl = env.OPENKRILL_BASE_URL || 'https://api.openkrill.app';
-  const norm = toolName.toLowerCase().replace(/-/g, '_');
-  const handlerKey = CANONICAL_TOOL_KEY[norm];
-
-  if (baseUrl !== 'offline') {
-    try {
-      const liveHandler = handlerKey ? LIVE_HANDLERS[handlerKey] : undefined;
-      const result = liveHandler
-        ? await liveHandler(baseUrl, env.OPENKRILL_API_KEY, args)
-        : await callOpenkrillV1Tool(baseUrl, env.OPENKRILL_API_KEY, toolName, args);
-      if (result) return result;
-    } catch {
-      // Upstream network unavailable or offline: fall through to deterministic tool fallback
-    }
-  }
-
-  return executeLocalToolFallback(toolName, args);
-}
-
-/**
- * Fetch live /v1/usage from upstream openkrill API when OPENKRILL_API_KEY is configured.
- */
-export async function fetchUpstreamOpenkrillUsage(
-  env: Env,
-  period: string
-): Promise<Record<string, number> | null> {
-  if (!env.OPENKRILL_API_KEY) return null;
-  const baseUrl = env.OPENKRILL_BASE_URL || 'https://api.openkrill.app';
-  if (baseUrl === 'offline') return null;
+): Promise<UpstreamResult> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), tool.timeoutMs);
   try {
-    const url = `${baseUrl}/v1/usage?period=${encodeURIComponent(period)}`;
-    const res = await fetchJsonWithTimeout(
-      url,
-      buildUpstreamHeaders(env.OPENKRILL_API_KEY),
-      undefined,
-      'GET'
-    );
-    if (res.ok && res.json && typeof res.json.usage === 'object') {
-      return res.json.usage as Record<string, number>;
-    }
-  } catch {
-    // Ignore upstream telemetry read error
+    return tool.target.kind === 'mcp'
+      ? await callMcp(env, tool as GovernedTool & { target: { kind: 'mcp' } }, args, controller.signal)
+      : await callRest(env, tool as GovernedTool & { target: { kind: 'rest' } }, args, controller.signal);
+  } catch (err) {
+    const timedOut = controller.signal.aborted;
+    return {
+      ok: false,
+      status: timedOut ? 504 : 502,
+      message: timedOut ? `upstream timed out after ${tool.timeoutMs} ms` : String(err),
+    };
+  } finally {
+    clearTimeout(timer);
   }
-  return null;
-}
-
-const FALLBACK_HANDLERS: Record<
-  string,
-  (args: Record<string, unknown>) => Record<string, unknown>
-> = {
-  eu_duty_estimate: args => buildEuDutySummary(args),
-  list_jobs: args => {
-    const company = String(args.companies || args.company || 'TechCorp');
-    const keyword = String(args.keyword || '');
-    const prefix = keyword ? `${keyword} ` : '';
-    return {
-      company,
-      keyword,
-      jobs: [
-        {
-          id: 'job_101',
-          title: `${prefix}Software Engineer`,
-          company,
-          location: 'Remote',
-          department: 'Engineering',
-          url: `https://careers.example.com/${encodeURIComponent(company)}/101`,
-        },
-        {
-          id: 'job_102',
-          title: `${prefix}Product Lead`,
-          company,
-          location: 'Berlin / Remote',
-          department: 'Product',
-          url: `https://careers.example.com/${encodeURIComponent(company)}/102`,
-        },
-      ],
-    };
-  },
-  get_app_reviews: args => ({
-    app: String(args.app || 'com.example.app'),
-    average_rating: 4.6,
-    total_reviews: 1420,
-    sample_reviews: [
-      { id: 'rev_1', rating: 5, author: 'UserA', text: 'Excellent tool and performance.' },
-      { id: 'rev_2', rating: 4, author: 'UserB', text: 'Fast and reliable.' },
-    ],
-  }),
-  find_tariff_codes: args => ({
-    query: String(args.query || args.description || 't-shirt'),
-    candidates: [
-      {
-        code: '6109.10.00',
-        description: 'T-shirts, singlets and other vests, knitted or crocheted, of cotton',
-        duty_rate: '12.0%',
-      },
-    ],
-  }),
-  check_vat_number: args => {
-    const parsed = parseVatInput(args);
-    return {
-      vat_number: parsed.full,
-      valid: true,
-      country_code: parsed.country,
-      consultation_number: `VIES-${Date.now().toString(36).toUpperCase()}`,
-    };
-  },
-};
-
-/**
- * Local deterministic implementations of openkrill tools for offline/test reliability.
- */
-function executeLocalToolFallback(
-  toolName: string,
-  args: Record<string, unknown>
-): UpstreamToolResult {
-  const norm = toolName.toLowerCase().replace(/-/g, '_');
-  const key = CANONICAL_TOOL_KEY[norm];
-  const fn = key ? FALLBACK_HANDLERS[key] : undefined;
-  const data = fn
-    ? fn(args)
-    : {
-        tool: toolName,
-        status: 'success',
-        input: args,
-        timestamp: Date.now(),
-      };
-  return { ok: true, status: 200, data };
 }

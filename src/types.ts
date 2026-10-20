@@ -1,11 +1,26 @@
 export interface Env {
   DB: D1Database;
+  ASSETS?: Fetcher;
   OPENKRILL_BASE_URL?: string;
+  /** A static OpenKrill API key; when set it is used instead of the Connect token. */
   OPENKRILL_API_KEY?: string;
-  DEFAULT_PRICE_CENTS?: string;
+  /** OpenKrill Connect OAuth client the desk refreshes its access token with. */
+  OPENKRILL_CLIENT_ID?: string;
+  /** Seeds the first Connect refresh; later refresh tokens rotate in D1. */
+  OPENKRILL_REFRESH_TOKEN?: string;
+  /** Bearer token for every /api/admin/* route. Unset means the admin plane is closed. */
   ADMIN_SECRET?: string;
+  /** Ed25519 private key as a JWK JSON string; its public half is served for offline checks. */
   RECEIPT_SIGNING_KEY: string;
+  /** How many public sandbox keys may be minted per UTC day. */
+  DEMO_DAILY_KEY_LIMIT?: string;
 }
+
+/**
+ * Money is stored and computed as integer millicents (1/1000 of a US cent),
+ * so sub-cent tool prices never pass through floating point.
+ */
+export type Millicents = number;
 
 export interface Organization {
   id: string;
@@ -20,30 +35,62 @@ export interface AgentKey {
   key_prefix: string;
   org_id: string;
   name: string;
-  budget_cents: number;
-  spent_cents: number;
-  allowlist: string; // JSON string array
-  per_call_price_cents: number;
-  tool_pricing_overrides: string; // JSON string object
+  budget_mc: Millicents;
+  spent_mc: Millicents;
+  allowlist: string; // JSON string array of desk tool names, or ["*"] for every governed tool
+  price_overrides: string; // JSON object: desk tool name -> price in millicents
   status: 'active' | 'revoked';
+  expires_at: number | null;
   created_at: number;
   updated_at: number;
 }
+
+export type Protocol = 'http' | 'mcp';
+
+export type ClearingStatus =
+  | 'success'
+  | 'refused_allowlist'
+  | 'refused_budget'
+  | 'upstream_error';
 
 export interface AuditLog {
   id: string;
   org_id: string;
   key_id: string;
   tool_name: string;
-  protocol: 'http' | 'mcp';
-  request_method: string;
-  status: 'success' | 'refused_budget' | 'refused_allowlist' | 'error';
+  upstream: string;
+  protocol: Protocol;
+  status: ClearingStatus;
   status_code: number;
-  params_summary: string | null;
-  cost_cents: number;
-  price_cents: number;
-  margin_cents: number;
+  params_summary: string;
+  params_sha256: string;
+  result_sha256: string | null;
+  error_detail: string | null;
+  cost_mc: Millicents;
+  price_mc: Millicents;
+  margin_mc: Millicents;
+  latency_ms: number;
   created_at: number;
+}
+
+/** The exact fields a receipt signs, in signing order. */
+export interface ReceiptPayload {
+  v: 'cd-receipt-v3';
+  receipt_id: string;
+  audit_log_id: string;
+  org_id: string;
+  key_id: string;
+  tool: string;
+  upstream: string;
+  protocol: Protocol;
+  outcome: ClearingStatus;
+  http_status: number;
+  amount_mc: Millicents;
+  cost_mc: Millicents;
+  currency: 'USD';
+  params_sha256: string;
+  result_sha256: string | null;
+  issued_at: number;
 }
 
 export interface Receipt {
@@ -52,9 +99,12 @@ export interface Receipt {
   key_id: string;
   org_id: string;
   tool_name: string;
-  amount_cents: number;
-  currency: string;
-  receipt_hash: string;
+  amount_mc: Millicents;
+  /** Canonical JSON of ReceiptPayload; the signature covers these exact bytes. */
+  payload: string;
+  /** Base64url Ed25519 signature over payload. */
+  signature: string;
+  key_fingerprint: string;
   issued_at: number;
 }
 
@@ -63,33 +113,7 @@ export interface UsageEvent {
   event: string;
   period: string;
   count: number;
-  spent_cents: number;
-}
-
-export interface UsageSummaryItem {
-  event: string;
-  count: number;
-  spent_cents: number;
-  price_per_event_cents: number;
-}
-
-export interface UsageSummary {
-  period: string;
-  key_id: string;
-  budget_cents: number;
-  spent_cents: number;
-  remaining_budget_cents: number;
-  items: UsageSummaryItem[];
-  usage: Record<string, number>;
-  total_events: number;
-  upstream_openkrill_usage?: Record<string, number> | null;
-}
-
-export interface ToolPricing {
-  toolName: string;
-  costCents: number;
-  priceCents: number;
-  marginCents: number;
+  spent_mc: Millicents;
 }
 
 export interface JsonSchema {
@@ -102,6 +126,7 @@ export interface JsonSchema {
 
 export interface McpToolDefinition {
   name: string;
+  title?: string;
   description: string;
   inputSchema: JsonSchema;
 }
@@ -113,22 +138,25 @@ export interface RpcRequest {
   params?: Record<string, unknown>;
 }
 
-export interface StructuredClearingError {
+export type ClearingErrorCode =
+  | 'budget_exceeded'
+  | 'tool_not_allowed'
+  | 'unknown_tool'
+  | 'invalid_arguments'
+  | 'upstream_error'
+  | 'key_revoked'
+  | 'key_expired'
+  | 'unauthorized'
+  | 'not_found'
+  | 'bad_request'
+  | 'rate_limited'
+  | 'admin_disabled'
+  | 'internal_error';
+
+export interface ClearingError {
   error: {
-    code:
-      | 'budget_exceeded'
-      | 'tool_not_allowed'
-      | 'key_revoked'
-      | 'unauthorized'
-      | 'not_found'
-      | 'bad_request'
-      | 'internal_error';
+    code: ClearingErrorCode;
     message: string;
-    key_id?: string;
-    tool_name?: string;
-    budget_cents?: number;
-    spent_cents?: number;
-    call_price_cents?: number;
-    receipt_id?: string;
+    [key: string]: unknown;
   };
 }

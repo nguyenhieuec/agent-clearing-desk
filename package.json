@@ -1,7 +1,7 @@
 {
   "name": "agent-clearing-desk",
   "version": "0.1.0",
-  "description": "Agent Clearing Desk: Enterprise budget metering, tool allowlists, signed audit receipts, and openkrill tool proxy for autonomous AI agents",
+  "description": "Agent Clearing Desk: a spend gate for AI agents that call paid tools, with per-key budgets, tool allowlists and Ed25519-signed receipts",
   "license": "MIT",
   "type": "module",
   "scripts": {

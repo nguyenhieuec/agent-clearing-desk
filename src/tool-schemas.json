@@ -1,0 +1,361 @@
+{
+  "eu_duty_estimate": {
+    "type": "object",
+    "properties": {
+      "lines": {
+        "type": "array",
+        "minItems": 1,
+        "maxItems": 200,
+        "description": "Lines (1 to 200), each {description, origin (2 letters), qty (integer), unit_value_eur (euros), optional hs_code}, such as [{\"description\":\"mug\",\"origin\":\"CN\",\"qty\":2,\"unit_value_eur\":12}].",
+        "items": {
+          "type": "object",
+          "properties": {
+            "description": {
+              "type": "string",
+              "description": "What the goods are, such as \"cotton t-shirt\""
+            },
+            "hs_code": {
+              "type": "string",
+              "pattern": "^\\d{4}\\.?\\d{2}(\\.?\\d{2}(\\.?\\d{2})?)?$",
+              "description": "6, 8 or 10 digit tariff code, dots allowed, if known (a candidate, not binding)"
+            },
+            "origin": {
+              "type": "string",
+              "pattern": "^[A-Za-z]{2}$",
+              "description": "2-letter country the goods were made in, such as CN"
+            },
+            "qty": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000,
+              "description": "Units on the line"
+            },
+            "unit_value_eur": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1000000,
+              "description": "Price of one unit in euros"
+            }
+          },
+          "required": [
+            "description",
+            "origin",
+            "qty",
+            "unit_value_eur"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "consignment_value_eur": {
+        "type": "number",
+        "minimum": 0,
+        "description": "Intrinsic value of the whole consignment in euros, if different from the sum of the lines"
+      },
+      "channel": {
+        "type": "string",
+        "enum": [
+          "ioss",
+          "postal"
+        ],
+        "description": "How the goods enter the EU: \"ioss\" (VAT-exempt under the Import One-Stop Shop) or \"postal\" (a postal consignment). The EUR 3 rule covers only \"ioss\" or \"postal\" entries (courier shipments outside IOSS are not covered; if the user says courier such as DHL without specifying IOSS, pass \"ioss\" to show the EUR 3 IOSS figure and state clearly that a courier entry outside IOSS is not covered and needs IOSS or postal)."
+      },
+      "date": {
+        "type": "string",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+        "description": "Import day, YYYY-MM-DD (default today, UTC)"
+      }
+    },
+    "required": [
+      "lines",
+      "channel"
+    ],
+    "additionalProperties": false
+  },
+  "find_tariff_codes": {
+    "type": "object",
+    "properties": {
+      "description": {
+        "type": "string",
+        "minLength": 3,
+        "maxLength": 200,
+        "description": "Plain description of the product: what it is, what it is made of, what it is used for. Or a code, to look that code up."
+      },
+      "country": {
+        "type": "string",
+        "enum": [
+          "GB",
+          "US"
+        ],
+        "description": "Destination of the goods, whose import tariff to read: GB (United Kingdom Global Tariff) or US (Harmonized Tariff Schedule). The EU and other countries are not covered."
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 15,
+        "description": "Most candidates to return. Default 8."
+      }
+    },
+    "required": [
+      "description",
+      "country"
+    ],
+    "additionalProperties": false
+  },
+  "check_vat_number": {
+    "type": "object",
+    "properties": {
+      "country": {
+        "type": "string",
+        "pattern": "^[A-Za-z]{2}$",
+        "description": "Two-letter country code of the VAT number: an EU member state (Greece is EL) or XI for Northern Ireland. GB numbers cannot be checked."
+      },
+      "vatNumber": {
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 20,
+        "description": "The business VAT registration number, as printed on an invoice, with or without the country prefix, spaces and dots, for example 811128135 or DE 811 128 135."
+      },
+      "requesterCountry": {
+        "type": "string",
+        "pattern": "^[A-Za-z]{2}$",
+        "description": "Country code of the business VAT number of the user asking. Send with requesterVatNumber to get a consultation number."
+      },
+      "requesterVatNumber": {
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 20,
+        "description": "The business VAT number of the user asking, for a consultation number. Leave out unless the user gives it."
+      }
+    },
+    "required": [
+      "country",
+      "vatNumber"
+    ],
+    "additionalProperties": false
+  },
+  "list_jobs": {
+    "type": "object",
+    "properties": {
+      "companies": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "minItems": 1,
+        "maxItems": 50,
+        "description": "Careers page URLs, \"ats:slug\" tokens or company names and domains, e.g. [\"greenhouse:airbnb\", \"https://jobs.lever.co/spotify\", \"https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite\", \"stripe.com\"]"
+      },
+      "keyword": {
+        "type": "string",
+        "maxLength": 200,
+        "description": "Keep jobs whose title or description mentions every word of this text"
+      },
+      "titleKeywords": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "maxItems": 20,
+        "description": "Keep jobs whose title contains any of these phrases, e.g. [\"engineer\", \"developer\"]"
+      },
+      "excludeTitleKeywords": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "maxItems": 20,
+        "description": "Drop jobs whose title contains any of these phrases, e.g. [\"senior\", \"intern\"]"
+      },
+      "location": {
+        "type": "string",
+        "maxLength": 200,
+        "description": "Keep jobs whose location text or city contains this, or whose country matches this name or ISO code"
+      },
+      "remote": {
+        "type": "boolean",
+        "description": "Keep only remote jobs when true"
+      },
+      "department": {
+        "type": "string",
+        "maxLength": 200,
+        "description": "Keep jobs in a department matching this text"
+      },
+      "employmentTypes": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": [
+            "full_time",
+            "part_time",
+            "contract",
+            "intern",
+            "temporary",
+            "other"
+          ]
+        },
+        "maxItems": 6,
+        "description": "Keep jobs of these employment types"
+      },
+      "postedSince": {
+        "type": "string",
+        "maxLength": 40,
+        "description": "ISO date; keep jobs posted or updated on or after it"
+      },
+      "postedWithinDays": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 365,
+        "description": "Keep jobs posted or updated in the last N days"
+      },
+      "withSalary": {
+        "type": "boolean",
+        "description": "Keep only jobs that publish a salary figure when true"
+      },
+      "maxJobsPerCompany": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 5000,
+        "description": "Cap on jobs returned per company after filtering (default 1000)"
+      },
+      "maxItems": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 5000,
+        "description": "Cap on jobs returned in total across all companies"
+      },
+      "includeDescription": {
+        "type": "boolean",
+        "description": "Workday, SmartRecruiters and BambooHR need one extra request per job for the full text; false skips it for a faster list"
+      }
+    },
+    "required": [
+      "companies"
+    ]
+  },
+  "get_app_reviews": {
+    "type": "object",
+    "properties": {
+      "apps": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "minItems": 1,
+        "maxItems": 10,
+        "description": "App Store or Google Play URLs, Apple numeric ids (id310633997) or Play package names (com.spotify.music)"
+      },
+      "countries": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "pattern": "^[A-Za-z]{2}$"
+        },
+        "maxItems": 10,
+        "description": "Two-letter country codes. Defaults to [\"us\"]"
+      },
+      "languages": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 12
+        },
+        "maxItems": 10,
+        "description": "Google Play language codes. Defaults to [\"en\"]"
+      },
+      "maxReviewsPerApp": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 5000,
+        "description": "Reviews per app, country and language. Default 100, 0 returns app metadata only"
+      },
+      "sinceDate": {
+        "type": "string",
+        "maxLength": 40,
+        "description": "ISO date; only reviews on or after it"
+      },
+      "sort": {
+        "type": "string",
+        "enum": [
+          "newest",
+          "relevant"
+        ],
+        "description": "Review order. Defaults to newest"
+      }
+    },
+    "required": [
+      "apps"
+    ]
+  },
+  "get_transcript": {
+    "type": "object",
+    "properties": {
+      "video": {
+        "type": "string",
+        "maxLength": 300,
+        "description": "YouTube video URL (watch, youtu.be, shorts, embed, live) or 11-character video ID"
+      },
+      "languages": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 12
+        },
+        "maxItems": 10,
+        "description": "Language codes in priority order, e.g. [\"en\", \"pt-BR\"]; a code also matches its regional variants. Defaults to [\"en\"]"
+      },
+      "fallbackToAnyLanguage": {
+        "type": "boolean",
+        "description": "When none of the languages exist, return the video's original-language transcript (languageFallback: true) instead of an error. Defaults to true"
+      },
+      "translateTo": {
+        "type": "string",
+        "maxLength": 12,
+        "description": "Translate the transcript into this language code when YouTube offers it"
+      },
+      "format": {
+        "type": "string",
+        "enum": [
+          "segments",
+          "text",
+          "srt",
+          "vtt"
+        ],
+        "description": "segments = timestamped JSON plus text (default), text = plain text only, srt/vtt = subtitle file"
+      }
+    },
+    "required": [
+      "video"
+    ]
+  },
+  "ask_repo_question": {
+    "properties": {
+      "repoName": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        ],
+        "description": "GitHub repository or list of repositories (max 10) in owner/repo format."
+      },
+      "question": {
+        "description": "The question to ask about the repository.",
+        "type": "string"
+      }
+    },
+    "required": [
+      "repoName",
+      "question"
+    ],
+    "type": "object"
+  }
+}

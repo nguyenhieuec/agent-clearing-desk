@@ -1,8 +1,17 @@
 import { execSync } from 'node:child_process';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 
-const MCP_CONFIG_PATH = '/tmp/clearingdesk-eval/mcp.json';
+/**
+ * Agent customer check: a small model gets natural requests and only the desk's MCP tools.
+ * CLEARING_DESK_KEY must be a desk key that allows every tool; the MCP config with it lives
+ * in a private temp folder that is removed at the end.
+ */
+const DESK_URL = process.env.CLEARING_DESK_URL || 'https://agent-clearing-desk.nguyenhieuec.workers.dev';
+const MODEL = process.env.CHECK_MODEL || 'cli-proxy/gemini-3.8-flash';
+const WORK_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'clearingdesk-eval-'));
+const MCP_CONFIG_PATH = path.join(WORK_DIR, 'mcp.json');
 
 const TASKS = [
   {
@@ -34,6 +43,12 @@ const TASKS = [
     type: 'positive',
     prompt: 'Verify if German VAT number DE123456789 is legally registered in the EU',
     expectedTool: 'check_vat_number',
+  },
+  {
+    id: 9,
+    type: 'positive',
+    prompt: 'In the cloudflare/workers-sdk GitHub repo, how does wrangler decide which D1 migrations still need to run?',
+    expectedTool: 'ask_repo_question',
   },
   {
     id: 6,
@@ -128,12 +143,12 @@ function gradeNegativeTask(toolsChosen, durationSec) {
 async function runTask(task) {
   console.log(`\n=== Running Task ${task.id} (${task.type}): "${task.prompt}" ===`);
   const t0 = Date.now();
-  const outputFile = `/tmp/clearingdesk-eval/task_${task.id}.jsonl`;
+  const outputFile = path.join(WORK_DIR, `task_${task.id}.jsonl`);
 
   try {
     execSync(
-      `pi --model cli-proxy/gemini-3.8-flash --tools mcp --mcp-config ${MCP_CONFIG_PATH} -p --mode json "${task.prompt.replace(/"/g, '\\"')}" > ${outputFile} 2>&1`,
-      { timeout: 60000 }
+      `pi --model ${MODEL} --tools mcp --mcp-config ${MCP_CONFIG_PATH} -p --mode json "${task.prompt.replace(/"/g, '\\"')}" > ${outputFile} 2>&1`,
+      { timeout: 120000 }
     );
   } catch (err) {
     console.error(`Task ${task.id} exited with status: ${err.status}`);
@@ -169,62 +184,75 @@ async function runTask(task) {
   };
 }
 
-function formatMarkdownReport(results, positivePassed, negativePassed, allPassed) {
+function formatMarkdownReport(results, totals, ledger) {
   const rows = results
     .map(
       r =>
-        `| ${r.id} | ${r.type} | "${r.prompt}" | \`${r.expectedTool || 'none'}\` | \`${r.toolsChosen}\` | ${r.durationSec}s | **${r.verdict.toUpperCase()}** | ${r.details} |`
+        `| ${r.id} | ${r.type} | "${r.prompt}" | \`${r.expectedTool || 'none'}\` | \`${r.toolsChosen}\` | ${r.durationSec}s | **${r.verdict.toUpperCase()}** |`
     )
     .join('\n');
+  const outcomes = Object.entries(ledger).map(([k, n]) => `${k} ${n}`).join(', ') || 'none';
 
   return [
-    '# Agent Customer Check: Agent Clearing Desk\n',
-    'Evaluation conducted against the local Clearing Desk server running under wrangler dev.',
-    'Runner: Pi 0.87 non-interactive (pi -p --mode json), model cli-proxy gemini-3.8-flash, temporary MCP config in /tmp/clearingdesk-eval/mcp.json.',
-    'Global ~/.pi configuration was left untouched.',
-    'Prompts were phrased as natural customer requests with no tool names or argument hints.\n',
-    '## Pass Bar Requirements\n',
-    '- At least 4 of 5 positive tasks pick the right tool with no human hint.',
-    '- No negative task calls any tool.',
-    '- Failing picks must be diagnosed and resolved in tool descriptions.\n',
-    '## Results Summary\n',
-    '| Metric | Target | Actual | Verdict |',
-    '| --- | --- | --- | --- |',
-    `| Positive Tasks | >= 4 / 5 | ${positivePassed} / 5 | ${positivePassed >= 4 ? 'PASS' : 'FAIL'} |`,
-    `| Negative Tasks (Zero Tool Calls) | 3 / 3 | ${negativePassed} / 3 | ${negativePassed === 3 ? 'PASS' : 'FAIL'} |`,
-    `| Overall Pass Bar | Met | ${allPassed ? 'Met' : 'Unmet'} | **${allPassed ? 'PASSED' : 'FAILED'}** |\n`,
-    '## Task Log\n',
-    '| # | Type | Prompt | Expected Tool | Tool Chosen | Duration | Result | Notes |',
-    '|---|---|---|---|---|---|---|---|',
+    '# Agent customer check: Agent Clearing Desk\n',
+    `Run on ${new Date().toISOString().slice(0, 10)} against the live desk (${DESK_URL}/mcp).`,
+    `Runner: pi ${'-p --mode json'}, model ${MODEL}, only the desk MCP tools enabled, config in a private temp folder.`,
+    'Prompts are natural customer requests with no tool names or argument hints.\n',
+    '## Pass bar\n',
+    `- At least ${totals.positiveBar} of ${totals.positive} positive tasks pick the right tool with no hint.`,
+    '- No negative task calls a paid tool.\n',
+    '## Result\n',
+    '| Metric | Target | Actual |',
+    '| --- | --- | --- |',
+    `| Positive tasks | >= ${totals.positiveBar} / ${totals.positive} | ${totals.positivePassed} / ${totals.positive} |`,
+    `| Negative tasks with no paid tool call | ${totals.negative} / ${totals.negative} | ${totals.negativePassed} / ${totals.negative} |`,
+    `| Overall | pass | **${totals.allPassed ? 'PASS' : 'FAIL'}** |\n`,
+    `Receipts the desk signed for this key during the run, by outcome: ${outcomes}.\n`,
+    '## Task log\n',
+    '| # | Type | Prompt | Expected tool | Tools called | Time | Result |',
+    '|---|---|---|---|---|---|---|',
     rows,
-    '\n## Detailed Observations\n',
-    '- **Positive Task 1 (EU Duty)**: The agent consulted balance and called `eu_duty_estimate` with quantity 3, confirming total duty was 9.00 EUR and verified clearing charge stayed within the 5 cent cap.',
-    '- **Positive Task 2 (Job Boards)**: The agent discovered `list_jobs` and passed Airbnb as the target company with keyword filtering.',
-    '- **Positive Task 3 (App Reviews)**: The agent chose `get_app_reviews` and extracted sentiment and ratings for Spotify.',
-    '- **Positive Task 4 (Tariff Codes)**: The agent identified `find_tariff_codes` for ceramic mugs.',
-    '- **Positive Task 5 (EU VAT Check)**: The agent invoked `check_vat_number` for the German VAT identifier against the registry.',
-    '- **Negative Tasks 6, 7, 8**: The agent generated conversational text without making any tool calls, correctly identifying that poem generation, coding concepts, and simple arithmetic do not warrant external API clearing.\n',
+    '',
   ].join('\n');
 }
 
-async function main() {
-  const results = [];
-  for (const task of TASKS) {
-    results.push(await runTask(task));
-  }
-
-  const positivePassed = results.filter(
-    r => r.type === 'positive' && r.verdict === 'pass'
-  ).length;
-  const negativePassed = results.filter(
-    r => r.type === 'negative' && r.verdict === 'pass'
-  ).length;
-  const allPassed = positivePassed >= 4 && negativePassed === 3;
-
-  const md = formatMarkdownReport(results, positivePassed, negativePassed, allPassed);
-  const reportPath = path.resolve('AGENT-CUSTOMER-CHECK.md');
-  fs.writeFileSync(reportPath, md);
-  console.log(`Saved evaluation report to ${reportPath}`);
+/** What the desk itself recorded for the key: the ground truth beside the model transcript. */
+async function ledgerOutcomes() {
+  const res = await fetch(`${DESK_URL}/v1/receipts?limit=200`, { headers: { 'x-api-key': process.env.CLEARING_DESK_KEY } });
+  const { receipts = [] } = await res.json();
+  const counts = {};
+  for (const r of receipts) counts[r.fields.outcome] = (counts[r.fields.outcome] ?? 0) + 1;
+  return counts;
 }
 
-main().catch(console.error);
+async function main() {
+  if (!process.env.CLEARING_DESK_KEY) throw new Error('set CLEARING_DESK_KEY to a desk key that allows every tool');
+  const server = { url: `${DESK_URL}/mcp`, headers: { 'x-api-key': process.env.CLEARING_DESK_KEY } };
+  fs.writeFileSync(MCP_CONFIG_PATH, JSON.stringify({ mcpServers: { 'clearing-desk': server } }), { mode: 0o600 });
+
+  const results = [];
+  try {
+    for (const task of TASKS) results.push(await runTask(task));
+  } finally {
+    fs.rmSync(WORK_DIR, { recursive: true, force: true });
+  }
+
+  const count = (type, verdict) => results.filter(r => r.type === type && (!verdict || r.verdict === verdict)).length;
+  const totals = {
+    positive: count('positive'),
+    positivePassed: count('positive', 'pass'),
+    negative: count('negative'),
+    negativePassed: count('negative', 'pass'),
+  };
+  totals.positiveBar = totals.positive - 1;
+  totals.allPassed = totals.positivePassed >= totals.positiveBar && totals.negativePassed === totals.negative;
+
+  const md = formatMarkdownReport(results, totals, await ledgerOutcomes());
+  fs.writeFileSync(path.resolve('AGENT-CUSTOMER-CHECK.md'), md);
+  console.log(md);
+}
+
+main().catch(err => {
+  console.error(err);
+  process.exit(1);
+});

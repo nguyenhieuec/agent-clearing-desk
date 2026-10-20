@@ -1,16 +1,26 @@
-# Audio & Media Credits - Agent Clearing Desk (Galuxium Nexus V2)
+# Audio and Media Credits - Agent Clearing Desk (Galuxium Nexus V2)
 
-All visual assets, narration, ambient pads, and UI sound cues in `galuxium-pitch-demo.mp4` and `galuxium-iteration-trail.mp4` are original works created specifically for the Galuxium Nexus V2 hackathon submission.
+The pitch video `agent-clearing-desk-pitch.mp4` was made for this submission with the repository's own video engine (`packages/video-engine` in the Agent Tools monorepo).
+It uses no stock footage, no stock music and no third-party clips.
 
-## Audio Tracks & Sound Design (`opus-sound-layer`)
+## Audio
 
-- **Spoken Narration (`voiceover.wav`)**: Generated locally via macOS neural speech synthesis (`Samantha` voice at 175 WPM) from the timecoded script in `submission/galuxium/video.md`.
-- **Ambient Synth Bed (`ambient-bed.wav`)**: Synthesized procedurally via `ffmpeg` (`aevalsrc` warm C-major9 harmonic drone at `130.81 Hz`, `196.00 Hz`, `246.94 Hz`, and `293.66 Hz`, low-pass filtered at `900 Hz` and sidechain-ducked under the narration).
-- **UI Transition & Receipt Verification Cues (`ui-cues.wav`)**: Synthesized procedurally via `ffmpeg` sine/bell envelopes (`523.25 Hz` and `659.25 Hz` confirmation chimes, `220 Hz` refusal guard tone).
-- **Loudness Normalization**: Mixed and EBU R128 loudness-normalized to `-14.0 LUFS` integrated (`TP <= -1.0 dBTP`) via `ffmpeg loudnorm`.
+- **Narration:** Google Gemini text-to-speech, prebuilt voice `Charon`, reading the script in `video.md` word for word.
+  Each line was checked against a local whisper.cpp transcript before the mix.
+- **Music:** a bed generated in code by the video engine (key of D, 84 bpm, documentary mood), ducked under the narration.
+- **Sound cues:** the soft tick, whoosh and end chime are also generated in code by the video engine.
+- **Loudness:** mixed to -14 LUFS integrated.
 
-## Visual Assets
+## Visuals
 
-- **Live Control Plane Screenshots (`screenshots/01..04.png`)**: Captured at `1440x900@2x` directly from the deployed Cloudflare Worker (`https://agent-clearing-desk.nguyenhieuec.workers.dev/admin`).
-- **System Architecture Diagram (`architecture.svg`)**: Original vector diagram authored in `submission/galuxium/architecture.svg`.
-- **License**: MIT License (`https://github.com/nguyenhieuec/agent-clearing-desk`).
+- **Live demo steps:** captured from the deployed desk at https://agent-clearing-desk.nguyenhieuec.workers.dev.
+  A real run of the judge sandbox was recorded in a headless browser, and each of the 7 steps is shown in the state it reached.
+- **Operator console and audit log:** screenshots of the deployed desk, from `screenshots/`.
+- **Terminal scenes:** real output of the live end-to-end run and of `verify-receipt.mjs` on a real receipt, set in a terminal frame.
+- **Architecture diagram:** `architecture.svg`, made for this submission.
+- **Comparison table:** made for this video from the public source of LiteLLM and Helicone, checked on 2026-10-20.
+- **Fonts:** Inter and JetBrains Mono, both under the SIL Open Font License 1.1.
+
+## License
+
+The code is under the MIT License: https://github.com/nguyenhieuec/agent-clearing-desk.

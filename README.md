@@ -1,38 +1,55 @@
 # Agent Clearing Desk
 
-**Agent Clearing Desk** is an enterprise FinOps control plane, policy firewall, and cryptographic settlement proxy for autonomous AI agents.
-Built on Cloudflare Workers and Cloudflare D1, it sits between AI agents (`MCP JSON-RPC 2.0` and `HTTP REST /v1/*`) and upstream tool APIs to enforce per-key cent-level spending caps, strict tool allowlists, instant key rotation, wholesale-to-retail spread accounting, and HMAC-SHA256 signed audit receipts.
+A spend gate for AI agents that call paid tools.
+Each agent key has a hard budget and a tool allowlist; every call is cleared before it runs and returns an Ed25519-signed receipt that anyone can verify offline.
 
-- **Live FinOps Dashboard & 5-Step Interactive Demo**: `https://agent-clearing-desk.nguyenhieuec.workers.dev/admin`
-- **Live Health Check**: `https://agent-clearing-desk.nguyenhieuec.workers.dev/health`
-- **Live Tool Catalog**: `https://agent-clearing-desk.nguyenhieuec.workers.dev/v1/tools`
-- **Live MCP Endpoint**: `https://agent-clearing-desk.nguyenhieuec.workers.dev/mcp`
-- **Galuxium Nexus V2 Submission Package**: [`submission/galuxium/`](./submission/galuxium/README.md)
+- Live desk and judge sandbox: https://agent-clearing-desk.nguyenhieuec.workers.dev
+- MCP endpoint: `/mcp` (Streamable HTTP, JSON responses)
+- REST: `POST /v1/tools/:name/run`
+- Public signing key: `/.well-known/receipt-signing-key.json`
+- Galuxium Nexus V2 package: [submission/galuxium/](./submission/galuxium/README.md)
 
-## Architecture
+![Architecture](./submission/galuxium/architecture.svg)
 
-![Agent Clearing Desk Architecture](./submission/galuxium/architecture.svg)
+## How a call is cleared
 
-## Key Features
+1. Unknown tool: 404. Missing required arguments: 400. Nothing is charged.
+2. Tool not on the allowlist: 403 with a signed receipt.
+3. One conditional `UPDATE` reserves the price; if the budget has no room, 402 with a signed receipt.
+4. The upstream runs. On failure or timeout the reservation is refunded (502 or 504).
+5. On success the price is charged and the receipt signs the input hash, result hash, amount and upstream cost.
 
-1. **Scoped Agent Keys (`cd_live_...`)**: Plaintext keys are shown once at creation or rotation and stored exclusively as SHA-256 hashes (`key_hash`) in Cloudflare D1.
-2. **Pre-Flight Tool Allowlists (`403 tool_not_allowed`)**: Unauthorized tools are blocked at the edge before any upstream request is made, recording an immutable `refused_allowlist` audit entry at `$0.00` cost.
-3. **Pre-Flight Budget Circuit Breakers (`402 budget_exceeded`)**: Calls that would exceed `budget_cents` are stopped pre-flight and return a structured `402 Payment Required` error with a signed refusal receipt (`rcpt_...`).
-4. **Live OpenKrill Upstream Integration**: Connects to live production OpenKrill tools (`eu_duty_estimate`, `find_tariff_codes`, `check_vat_number`, `list_jobs`, `get_app_reviews`) and verifies upstream metering via `/v1/usage`.
-5. **Cryptographic Audit Receipts (`rcpt_<24hex>`)**: Every transaction is committed atomically in D1 (`db.batch`) with a matching `aud_<24hex>` audit row and `rcpt_<24hex>` signed receipt verifiable at `GET /v1/receipts/:id` or via the MCP `get_call_receipt` tool.
-6. **Zero-Downtime Key Rotation**: `POST /api/admin/keys/:id/rotate` swaps the underlying `key_hash` while preserving `key_id`, historical receipts, and accumulated spend.
+Money is integer millicents.
+The audit log and receipts are append-only.
+Receipts are visible only within their organization.
 
-## Quickstart
+## Run it
 
 ```bash
 npm install
-npm run db:migrate:local
-npm test
+npm test                    # real SQLite (node:sqlite, Node 22.5+), production migration
 npm run typecheck
-npm run e2e
+npm run db:migrate:local
+npm run dev
 ```
 
-See [`submission/galuxium/judge-steps.md`](./submission/galuxium/judge-steps.md) for 30-second browser and `curl` verification against the live deployment.
+Secrets for a deployment:
+
+| Secret | What it is |
+| --- | --- |
+| `RECEIPT_SIGNING_KEY` | Ed25519 private key as JWK JSON |
+| `ADMIN_SECRET` | Bearer token for `/api/admin/*` (unset: the admin API is closed) |
+| `OPENKRILL_REFRESH_TOKEN` | OpenKrill Connect refresh token; seeds the first refresh, later tokens rotate in D1 |
+| `OPENKRILL_API_KEY` | Optional static OpenKrill API key; when set it replaces the Connect token |
+
+`OPENKRILL_CLIENT_ID` (the Connect client) is a plain var in `wrangler.jsonc`.
+If a refresh token ever stops working, set a new seed and delete the `upstream_credentials` row.
+
+Scripts:
+
+- `scripts/run-e2e.mjs`: live end-to-end run (operator flow with `ADMIN_SECRET`).
+- `scripts/verify-receipt.mjs`: offline receipt check with the public key.
+- `scripts/sync-tool-schemas.mjs`: copies input schemas from the upstreams.
 
 ## License
 

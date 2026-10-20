@@ -1,69 +1,102 @@
-# Agent Clearing Desk - Galuxium Nexus V2 Submission
+# Agent Clearing Desk
 
-**Agent Clearing Desk** is an edge FinOps control plane, policy firewall, and cryptographic settlement proxy for autonomous AI agents.
-It sits between AI agents (`MCP JSON-RPC 2.0` or `HTTP REST /v1/*`) and paid external APIs, enforcing per-agent cent-level spending caps, strict tool allowlists, instant key rotation, and HMAC-SHA256 signed audit receipts on Cloudflare Workers and D1.
+A spend gate for AI agents that call paid tools.
+Each agent gets its own key with a hard budget and a tool allowlist.
+Every call is cleared before it runs and returns a receipt that anyone can verify offline.
 
-## Live Production Links
+- Live desk and judge sandbox: https://agent-clearing-desk.nguyenhieuec.workers.dev
+- MCP endpoint: https://agent-clearing-desk.nguyenhieuec.workers.dev/mcp
+- Public signing key: https://agent-clearing-desk.nguyenhieuec.workers.dev/.well-known/receipt-signing-key.json
+- Source: https://github.com/nguyenhieuec/agent-clearing-desk
+- Pitch video (2:43): https://youtu.be/z89trfiVLAE
 
-- **Live FinOps Dashboard & 1-Click 5-Step Demo**: `https://agent-clearing-desk.nguyenhieuec.workers.dev/admin`
-- **Live Health Check**: `https://agent-clearing-desk.nguyenhieuec.workers.dev/health`
-- **Live Tool Catalog (`/v1/tools`)**: `https://agent-clearing-desk.nguyenhieuec.workers.dev/v1/tools`
-- **Live MCP Endpoint (`/mcp`)**: `https://agent-clearing-desk.nguyenhieuec.workers.dev/mcp`
-- **Public YouTube Pitch & Demo Video (`2m 36s`)**: `https://youtu.be/ghDr76m1lsQ`
-- **Public GitHub Repository**: `https://github.com/nguyenhieuec/agent-clearing-desk`
+## The problem
 
-## 1. The Problem: Unbounded Spend and Zero Auditability in Agentic Tool Calls
+Teams want agents to call paid data APIs: customs duty, VAT registries, job feeds, code search.
+Today the agent usually holds the master API key.
+Then one retry loop can spend the whole quota, the agent can call any tool on that account, and finance has no record that ties a charge to an agent and an input.
 
-Enterprise engineering teams want to connect autonomous agents (Claude Code, Cursor, LangGraph, custom MCP workers) to real commercial data and trade compliance APIs such as EU customs duty calculators, USITC tariff schedules, EU VIES VAT registries, and live recruitment feeds.
-Handing an autonomous agent a master upstream API key creates three immediate production failures:
+## What the desk does
 
-1. **Runaway Spend**: A single hallucinating retry loop can drain hundreds of dollars of API quota in minutes before an asynchronous billing webhook fires.
-2. **Lateral Tool Escalation**: A procurement agent that only needs `eu_duty_estimate` and `find_tariff_codes` can accidentally invoke unrestricted tools on the same upstream account.
-3. **Unverifiable Chargebacks**: Finance teams have no cryptographic record tying a specific agent key, tool input summary, wholesale cost, and retail charge to an immutable receipt.
+The desk sits between agents and the upstream tools, over REST (`POST /v1/tools/:name/run`) and MCP (`/mcp`).
+Upstream credentials stay in the Worker; agents only hold scoped `cd_live_` keys, stored as SHA-256 hashes.
+For OpenKrill the desk is a Connect OAuth client: it refreshes its 1 hour access token itself and keeps the rotating refresh token in D1.
 
-## 2. Our Solution: Pre-Flight Clearing & Atomic Settlement at the Edge
+For each call the desk runs one path:
 
-Agent Clearing Desk solves all three failure modes in a zero-dependency TypeScript Cloudflare Worker backed by a normalized 4-table Cloudflare D1 SQL ledger (`organizations`, `agent_keys`, `audit_logs`, `receipts`):
+1. Unknown tool: 404. Missing required arguments: 400. Nothing is written or charged.
+2. Tool not on the key's allowlist: 403, a signed receipt, no upstream call.
+3. Reserve the price with one conditional SQL `UPDATE ... WHERE spent_mc + price <= budget_mc`.
+   If no row changes, the call gets 402 and a signed receipt.
+   This is atomic: 20 concurrent calls on a key with room for one give exactly one success in the tests, and 10 concurrent calls on the live desk gave 1 x 200 and 9 x 402.
+4. Call the upstream. If it fails or times out, the reservation is refunded in the same batch that writes the receipt (502).
+5. On success, the desk charges the price and signs the receipt.
 
-- **Zero-Trust Key Isolation (`cd_live_...`)**: Upstream master credentials (`OPENKRILL_API_KEY`, provisioned via OpenKrill Connect, public keyId `05edfbb73f482e29`) remain sealed in the Worker environment.
-  Each agent receives a scoped `cd_live_<48hex>` key stored only as a SHA-256 hash (`key_hash`) in D1.
-- **Pre-Flight Tool Allowlist (`403 tool_not_allowed`)**: Before any upstream packet leaves the edge, the desk checks the key's JSON allowlist.
-  Disallowed tools are blocked in under 5 ms with `$0.00` charged and an immutable `refused_allowlist` audit row.
-- **Pre-Flight Budget Circuit Breaker (`402 budget_exceeded`)**: If `spent_cents + price_cents > budget_cents`, the call is halted before upstream execution and returns a structured `402 Payment Required` response with a signed refusal receipt so the agent can degrade gracefully instead of looping blindly.
-- **Atomic Wholesale-to-Retail Spread Accounting**: Every call resolves `cost_cents` (upstream wholesale cost), `price_cents` (retail charge to the agent org), and `margin_cents` (net clearing spread), committing the spend update, `aud_<24hex>` audit row, and `rcpt_<24hex>` receipt in a single `db.batch()` transaction.
-- **Cryptographic Receipts (`HMAC-SHA256`)**: Every response includes `x-clearing-receipt`, `x-clearing-receipt-hash`, `x-clearing-price-cents`, and `x-clearing-remaining-budget-cents` headers, plus an in-band `get_call_receipt` MCP tool so agents and auditors can verify `signature_valid: true` at any time.
+Every receipt is Ed25519 over a canonical JSON payload.
+The payload holds the key, org, tool, upstream, outcome, HTTP status, amount, upstream cost, a SHA-256 of the input and a SHA-256 of the result.
+Anyone with the public key can check it, with no call to the desk: `node scripts/verify-receipt.mjs receipt.json`, or WebCrypto in a browser.
+Changing one digit of the amount makes the check fail.
 
-## 3. System Architecture
+Money is integer millicents (1/1000 of a cent), and a CHECK constraint makes `spent > budget` impossible even outside the reservation path.
+Database triggers make the audit log and the receipts append-only.
+A receipt is visible only to keys of the same organization.
 
-![Agent Clearing Desk Architecture](./architecture.svg)
+## Two upstreams, one gate
 
-| Layer | Component | Responsibility |
+| Upstream | Protocol | Tools |
 | --- | --- | --- |
-| **Ingress Protocols** | `src/proxy.ts` (`/v1/*`) & `src/mcp.ts` (`/mcp`) | Dual-protocol ingress supporting standard REST tool execution and MCP `2024-11-05` JSON-RPC (`initialize`, `tools/list`, `tools/call`). |
-| **Policy & Metering** | `src/metering.ts` | Evaluates per-key tool allowlists, catalog wholesale costs, per-key pricing overrides, and hard cent-level budget caps. |
-| **Upstream Bridge** | `src/upstream.ts` | Routes approved calls to live OpenKrill endpoints (`/plugins/shop-duty/mcp`, `/plugins/tariffs/mcp`, `/plugins/eu-business/mcp`, `/v1/tools/job-boards/run`, `/v1/tools/app-reviews/run`) and reads live `/v1/usage` telemetry. |
-| **Cryptographic Signer** | `src/crypto.ts` | Generates `cd_live_` tokens, hashes keys with Web Crypto SHA-256, and signs canonical receipt payloads (`verifyReceipt`). |
-| **Relational Ledger** | `src/db.ts` + Cloudflare D1 (`clearing-desk`) | Executes atomic D1 batch writes across `organizations`, `agent_keys`, `audit_logs`, and `receipts`. |
-| **FinOps Control Plane** | `src/admin.ts` (`/admin`) | High-contrast dark-mode operator console with KPI strip, 1-click key rotation/revocation, receipt signature inspector, Monetization Blueprint tab, and 1-click 5-Step Live Governance Demo. |
+| OpenKrill | MCP plugins | `eu_duty_estimate`, `find_tariff_codes`, `check_vat_number` |
+| OpenKrill | REST | `list_jobs`, `get_app_reviews`, `get_transcript` |
+| DeepWiki (public) | MCP, SSE answers | `ask_repo_question` |
 
-## 4. Reference Benchmark Comparison
+Arguments pass through unchanged.
+Input schemas are copied from the upstreams by `scripts/sync-tool-schemas.mjs`.
+There is no fallback data: if the upstream fails, the agent gets an error and pays nothing.
+Two free desk tools, `check_agent_balance` and `get_call_receipt`, let an agent see where it stands.
 
-We benchmarked Agent Clearing Desk against **LiteLLM Proxy** (`BerriAI/litellm`) and **Helicone AI Gateway** (`Helicone/helicone`):
+## Who operates it
 
-| Capability | LiteLLM Proxy | Helicone Gateway | Agent Clearing Desk |
+- Operator: an admin API behind a bearer secret (`/api/admin/*`) creates organizations and keys, sets budgets, allowlists and per-key prices, rotates and revokes keys, and reads the audit log with upstream cost, price and margin per call.
+- Agent: can rotate its own key (`POST /v1/key/rotate`); the old secret stops at once, spend is kept.
+- Judge: `POST /api/demo/keys` gives anyone a sandbox key with a 2 cent budget, 2 allowed tools and a 60 minute life. The whole sandbox is capped at 100 keys per UTC day, so the public demo cannot drain the upstream account.
+
+## Architecture
+
+![Architecture](./architecture.svg)
+
+One TypeScript Cloudflare Worker with no runtime dependencies, and one D1 database with 5 ledger tables (`organizations`, `agent_keys`, `audit_logs`, `receipts`, `usage_events`) and one for the upstream token (`upstream_credentials`).
+
+| File | Job |
+| --- | --- |
+| `src/clearing.ts` | The one clearing path for REST and MCP |
+| `src/db.ts` | Atomic reservation, ledger batch, readers |
+| `src/crypto.ts` | Key hashing, Ed25519 signing and verification |
+| `src/upstream.ts` | MCP (JSON or SSE) and REST upstream calls, timeouts |
+| `src/openkrill-auth.ts` | OpenKrill Connect token refresh, rotating refresh token in D1 |
+| `src/tools.ts` | Governed tools, cost and price per call |
+| `src/proxy.ts`, `src/mcp.ts` | REST and MCP front doors |
+| `src/admin.ts` | Operator API and the capped public sandbox |
+| `public/` | Judge sandbox and operator console |
+
+## How it compares
+
+Checked against the source of each project on 2026-10-20.
+
+| | LiteLLM Proxy | Helicone | Agent Clearing Desk |
 | --- | --- | --- | --- |
-| **Runtime Footprint** | Python + FastAPI + Postgres + Redis | Node/Rust + ClickHouse + Supabase | Zero-dependency Cloudflare Worker + D1 SQLite |
-| **MCP Native Tool Firewall** | Partial | Observability headers | Full JSON-RPC `/mcp` + REST `/v1/tools/:name/run` |
-| **Signed Per-Call Receipts** | No | No | Yes (`rcpt_<24hex>`, verifiable via `/v1/receipts/:id` & MCP) |
-| **Wholesale vs. Retail Margin Ledger** | Spend tracking only | Cost tracking only | Atomic `cost_cents`, `price_cents`, `margin_cents` per call |
-| **1-Click Key Rotation Preserving Spend** | Requires key recreation | Dashboard key swap | Instant `POST /api/admin/keys/:id/rotate` preserving `key_id` & spend |
+| Main job | LLM routing for many providers | LLM observability | Spend gate for paid agent tools |
+| Per-key budget | Yes, also counts MCP tool calls | Yes, cost limits answer 429 | Yes, reserved atomically before the call |
+| Per-key MCP tool allowlist | Yes | No | Yes |
+| Refund when the upstream fails | Not documented | Not documented | Yes, same batch as the receipt |
+| Signed per-call receipt, verifiable offline | No | No | Yes, Ed25519, also for refusals |
+| Upstream cost vs price per call | Spend only | Cost only | Cost, price and margin |
 
-## 5. Submission Package Contents
+LiteLLM and Helicone do far more for LLM traffic.
+The desk is narrower: it is the money and proof layer for tool calls, and it can sit beside them.
 
-- [`README.md`](./README.md) - Executive summary, architecture, and benchmark comparison.
-- [`architecture.svg`](./architecture.svg) - Vector architecture diagram of the edge clearing flow.
-- [`judge-steps.md`](./judge-steps.md) - 30-second 1-click browser test and copy-paste `curl` verification steps.
-- [`checklist.md`](./checklist.md) - Galuxium Nexus V2 requirement and judging criteria mapping.
-- [`video.md`](./video.md) - Narrated pitch and demo video script with timecoded line-to-shot table.
-- [`e2e-live-output.json`](./e2e-live-output.json) - Saved output of the 12-step live verification run against `https://agent-clearing-desk.nguyenhieuec.workers.dev`.
-- [`screenshots/`](./screenshots/) - Real 1440x900 screenshots of the deployed `/admin` control plane.
+## Evidence
+
+- `npm test`: 20 tests on real SQLite (`node:sqlite`) with the same migrations as production. Only the upstreams and the OpenKrill token endpoint are faked.
+- [`e2e-live-output.json`](./e2e-live-output.json): 24 of 24 live checks against the deployed desk, with real upstream calls.
+- [`judge-steps.md`](./judge-steps.md): what a judge can repeat in a browser or with curl.
+- [`checklist.md`](./checklist.md): requirement mapping.

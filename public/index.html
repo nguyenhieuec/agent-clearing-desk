@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Agent Clearing Desk</title>
+  <meta name="description" content="Budgets, allowlists and signed receipts for every tool call an AI agent makes.">
+  <meta name="color-scheme" content="dark">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/app.css">
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+  <header class="top">
+    <div class="wrap top-inner">
+      <div class="brand">
+        <svg class="mark" viewBox="0 0 24 24" aria-hidden="true"><rect x="1.5" y="1.5" width="21" height="21" rx="5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M7 12.5l3.2 3.2L17 8.8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <div>
+          <h1>Agent Clearing Desk</h1>
+          <p class="tagline">Budgets, allowlists and signed receipts for every tool call an AI agent makes.</p>
+        </div>
+      </div>
+      <nav class="links" aria-label="Project links">
+        <a href="https://github.com/nguyenhieuec/agent-clearing-desk" rel="noopener">GitHub</a>
+        <a href="#mcp" id="link-mcp">MCP endpoint</a>
+        <a href="/.well-known/receipt-signing-key.json">Public key</a>
+      </nav>
+    </div>
+    <div class="wrap">
+      <div class="tabs" role="tablist" aria-label="Areas">
+        <button class="tab" role="tab" id="tab-sandbox" aria-controls="panel-sandbox" aria-selected="true">Judge sandbox</button>
+        <button class="tab" role="tab" id="tab-console" aria-controls="panel-console" aria-selected="false">Operator console</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <!-- Judge sandbox -->
+    <section id="panel-sandbox" role="tabpanel" aria-labelledby="tab-sandbox">
+      <div class="hero">
+        <div class="hero-text">
+          <h2>Watch one agent key hit every rule</h2>
+          <p class="lede">The demo mints a real sandbox key with a 2 cent budget and a 2-tool allowlist, then makes 7 real calls against this Worker.
+            Each call shows its request, status, x-clearing-* headers and latency.
+            Nothing on this page is mocked.</p>
+        </div>
+        <div class="hero-actions">
+          <button class="btn primary" id="run-demo">Run the live demo</button>
+          <p class="hint" id="demo-status">Takes about 10 to 40 seconds. Upstream tools are live.</p>
+        </div>
+      </div>
+
+      <div class="grid-sandbox">
+        <ol class="steps" id="steps" aria-live="polite"></ol>
+
+        <aside class="side">
+          <section class="card" aria-labelledby="bal-h">
+            <div class="card-head">
+              <h3 class="label" id="bal-h">Sandbox key balance</h3>
+              <button class="btn small" id="new-key">New sandbox key</button>
+            </div>
+            <div id="balance"></div>
+          </section>
+
+          <section class="card" aria-labelledby="rc-h">
+            <div class="card-head">
+              <h3 class="label" id="rc-h">Receipts for this key</h3>
+              <button class="btn small ghost" id="refresh-receipts">Refresh</button>
+            </div>
+            <div id="sandbox-receipts"><p class="empty">No key yet. Run the demo or mint a sandbox key.</p></div>
+          </section>
+        </aside>
+      </div>
+
+      <section class="block" aria-labelledby="sim-h">
+        <h2 id="sim-h">Agent call simulator</h2>
+        <p class="lede small">Call any governed tool with the current sandbox key, the way an agent would. Tools off the allowlist are refused with a signed receipt and charge 0.</p>
+        <div class="card sim">
+          <div class="sim-grid">
+            <div class="sim-left">
+              <label class="field-label" for="sim-tool">Tool</label>
+              <select id="sim-tool"></select>
+              <div id="sim-tool-info" class="sim-info"></div>
+              <label class="field-label" for="sim-args">Arguments (JSON)</label>
+              <textarea id="sim-args" spellcheck="false" rows="10"></textarea>
+              <div class="row gap">
+                <button class="btn primary" id="sim-run">Run tool call</button>
+                <span class="hint" id="sim-hint"></span>
+              </div>
+            </div>
+            <div class="sim-right" id="sim-out"><p class="empty">The response, status and x-clearing-* headers show here.</p></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="block" id="mcp" aria-labelledby="mcp-h">
+        <h2 id="mcp-h">Connect an agent over MCP</h2>
+        <p class="lede small">Streamable HTTP, stateless JSON-RPC. The same allowlist, budget and Ed25519 signature apply to every tools/call.</p>
+        <div class="card">
+          <dl class="kv">
+            <dt>Endpoint</dt><dd><code id="mcp-url"></code> <button class="btn tiny ghost" data-copy-from="mcp-url">Copy</button></dd>
+            <dt>Header</dt><dd><code>x-api-key: <span id="mcp-key-hint">cd_live_...</span></code></dd>
+            <dt>Public key</dt><dd><a href="/.well-known/receipt-signing-key.json"><code>/.well-known/receipt-signing-key.json</code></a></dd>
+          </dl>
+          <div class="code-head"><span class="label">Client config</span><button class="btn tiny ghost" data-copy-from="mcp-config">Copy</button></div>
+          <pre class="code" id="mcp-config"></pre>
+        </div>
+      </section>
+    </section>
+
+    <!-- Operator console -->
+    <section id="panel-console" role="tabpanel" aria-labelledby="tab-console" hidden>
+      <form class="card token-form" id="token-form" autocomplete="off">
+        <div class="token-row">
+          <label class="field-label" for="admin-token">Admin bearer token</label>
+          <input type="password" id="admin-token" placeholder="ADMIN_SECRET" autocomplete="off">
+          <button class="btn primary" type="submit">Connect</button>
+          <button class="btn ghost" type="button" id="token-clear">Forget token</button>
+        </div>
+        <p class="hint">Kept only in this tab's sessionStorage. Every /api/admin/* call sends it as Authorization: Bearer.</p>
+        <p class="flash" id="console-flash" hidden></p>
+      </form>
+
+      <div id="console-body" hidden>
+        <nav class="subnav" aria-label="Console sections">
+          <a href="#c-keys">Keys</a><a href="#c-create">Create key</a><a href="#c-audit">Audit log</a><a href="#c-prices">Price list</a><a href="#c-receipts">Receipts</a>
+          <button class="btn small ghost" id="console-refresh">Refresh</button>
+        </nav>
+
+        <div class="kpis" id="kpis"></div>
+
+        <section class="block" id="c-keys" aria-labelledby="keys-h">
+          <h2 id="keys-h">Agent keys</h2>
+          <div id="secret-reveal"></div>
+          <div class="table-wrap"><table class="tbl" id="keys-table"></table></div>
+        </section>
+
+        <section class="block" id="c-create" aria-labelledby="create-h">
+          <h2 id="create-h">Create an agent key</h2>
+          <form class="card create" id="create-form">
+            <div class="form-grid">
+              <div><label class="field-label" for="ck-name">Name</label><input id="ck-name" required placeholder="procurement-agent"></div>
+              <div><label class="field-label" for="ck-org">Organization</label><select id="ck-org"></select></div>
+              <div><label class="field-label" for="ck-budget">Budget (cents)</label><input id="ck-budget" type="number" min="0" step="0.001" value="100" required></div>
+              <div><label class="field-label" for="ck-exp">Expires in (minutes, optional)</label><input id="ck-exp" type="number" min="1" step="1" placeholder="never"></div>
+            </div>
+            <div class="new-org" id="new-org" hidden>
+              <div class="form-grid">
+                <div><label class="field-label" for="org-name">New organization name</label><input id="org-name" placeholder="Acme Procurement"></div>
+                <div><label class="field-label" for="org-email">Billing email</label><input id="org-email" type="email" placeholder="ops@acme.example"></div>
+              </div>
+            </div>
+            <fieldset class="allow">
+              <legend class="field-label">Allowlist</legend>
+              <div id="ck-allow" class="checks"></div>
+            </fieldset>
+            <div class="row gap"><button class="btn primary" type="submit">Create key</button><span class="hint" id="create-hint"></span></div>
+          </form>
+        </section>
+
+        <section class="block" id="c-audit" aria-labelledby="audit-h">
+          <h2 id="audit-h">Audit log</h2>
+          <div class="chips" id="audit-chips" role="group" aria-label="Filter by status"></div>
+          <div class="table-wrap"><table class="tbl" id="audit-table"></table></div>
+        </section>
+
+        <section class="block" id="c-prices" aria-labelledby="prices-h">
+          <h2 id="prices-h">Price list</h2>
+          <div class="table-wrap"><table class="tbl" id="prices-table"></table></div>
+        </section>
+
+        <section class="block" id="c-receipts" aria-labelledby="receipts-h">
+          <h2 id="receipts-h">Signed receipts</h2>
+          <p class="lede small">Each check runs in this browser with WebCrypto and the public key only. The server is not asked.</p>
+          <div class="table-wrap"><table class="tbl" id="receipts-table"></table></div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <footer class="wrap foot">
+    <span>Every call: allowlist, atomic budget reservation, real upstream, Ed25519 signature.</span>
+    <a href="/health">/health</a>
+  </footer>
+</body>
+</html>

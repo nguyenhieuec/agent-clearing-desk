@@ -1,75 +1,81 @@
-# Judge Verification Guide - Agent Clearing Desk (Galuxium Nexus V2)
+# Judge steps
 
-Every surface of Agent Clearing Desk is deployed live on Cloudflare Workers and D1.
-Judges can verify the entire governance, metering, policy-refusal, budget circuit-breaker, and cryptographic receipt workflow in under 90 seconds without installing anything.
+Everything below runs against the live desk.
+No account is needed.
 
-## 1. Live Production Endpoints
+## 1. In a browser (about 1 minute)
 
-- **FinOps Control Plane & Interactive 5-Step Demo UI**: `https://agent-clearing-desk.nguyenhieuec.workers.dev/admin`
-- **Health Probe**: `https://agent-clearing-desk.nguyenhieuec.workers.dev/health`
-- **HTTP Tool Proxy Catalog**: `https://agent-clearing-desk.nguyenhieuec.workers.dev/v1/tools`
-- **MCP Server (JSON-RPC 2.0)**: `https://agent-clearing-desk.nguyenhieuec.workers.dev/mcp`
-- **Pitch & Live Demo Video (`2m 36s`)**: `https://youtu.be/ghDr76m1lsQ`
-- **Source Code Repository**: `https://github.com/nguyenhieuec/agent-clearing-desk`
+1. Open https://agent-clearing-desk.nguyenhieuec.workers.dev
+2. Click **Run the live demo**.
+3. Watch the 7 steps. Each shows the real request, status, `x-clearing-*` headers and latency:
+   1. Mint a sandbox key: 201, 2 cent budget, 2 allowed tools.
+   2. `eu_duty_estimate` on the real upstream: 200, 1 cent charged.
+   3. `get_app_reviews` (not allowed): 403, 0 charged, signed receipt.
+   4. `check_vat_number` against EU VIES: 200, budget now used up.
+   5. `eu_duty_estimate` again: 402, signed receipt, no upstream call.
+   6. The browser fetches the public key and checks the step 2 signature with WebCrypto. A copy with one changed field fails.
+   7. The key rotates: the old secret gets 401, the new one gets 200 with the spend kept.
+   If a live upstream is slow or down, the step shows 502 or 504 with `upstream_error`: the reservation is refunded and the receipt still verifies. Run the demo again with a new key.
+4. Use **Verify offline** on any receipt in the side panel, or the **Agent call simulator** to call a tool yourself.
 
-## 2. Option A: One-Click Browser Verification (30 Seconds)
-
-1. Open `https://agent-clearing-desk.nguyenhieuec.workers.dev/admin` in any browser.
-2. Click the fourth tab, **Agent Playground (5-Step Live Demo)**, or click the emerald **Run 5-Step Live Governance Demo** button in the top header.
-3. Watch the live execution log run five sequential governance checks against the production Cloudflare Worker and D1 database:
-   - `[Step 1/5]` Issues a fresh scoped agent key (`cd_live_...`) with a 2-cent hard spending cap (`perCallPriceCents: 1`) and a 2-tool allowlist (`eu_duty_estimate`, `check_vat_number`).
-   - `[Step 2/5]` Executes a live `eu_duty_estimate` call (`200 OK`), deducts 1 cent, and returns an HMAC-SHA256 signed receipt (`rcpt_...`).
-   - `[Step 3/5]` Attempts an unauthorized `find_tariff_codes` call (`403 Forbidden - tool_not_allowed`) with `$0.00` charged.
-   - `[Step 4/5]` Runs `check_vat_number` (`200 OK`, 2/2 cents used) and then triggers the pre-flight circuit breaker (`402 Payment Required - budget_exceeded`), issuing a signed refusal receipt.
-   - `[Step 5/5]` Verifies the cryptographic signature (`signature_valid: true`) on `/v1/receipts/:id`.
-4. Switch to the **Audit & Receipt Ledger** tab and click any `rcpt_...` badge to inspect the raw JSON receipt and its SHA-256 signature verification.
-5. Switch to the **Monetization Blueprint** tab to inspect the wholesale cost, retail price, and clearing spread per tool call.
-
-## 3. Option B: Copy-Paste Terminal Verification (`curl`)
-
-Run the following commands in any terminal to mint your own scoped agent key, run a live tool call, trigger both guardrails, and verify the signed receipt:
+## 2. With curl
 
 ```bash
-# 1. Mint a scoped agent key with a 3-cent cap and allowlist ["eu_duty_estimate"]
-KEY_JSON=$(curl -sS -X POST https://agent-clearing-desk.nguyenhieuec.workers.dev/api/admin/keys \
-  -H "Content-Type: application/json" \
-  -d '{"name":"judge-verification-agent","budgetCents":3,"allowlist":["eu_duty_estimate"],"perCallPriceCents":2}')
-echo "$KEY_JSON" | jq .
+DESK=https://agent-clearing-desk.nguyenhieuec.workers.dev
 
-RAW_KEY=$(echo "$KEY_JSON" | jq -r '.rawKey')
+# a sandbox key: 2 cents, eu_duty_estimate + check_vat_number, 60 minutes
+KEY=$(curl -s -X POST $DESK/api/demo/keys | node -pe 'JSON.parse(require("fs").readFileSync(0)).key')
 
-# 2. Execute a live governed tool call (HTTP 200 OK, charges 1 cent catalog rate, issues rcpt_*)
-RUN_RES=$(curl -sS -X POST https://agent-clearing-desk.nguyenhieuec.workers.dev/v1/tools/eu_duty_estimate/run \
-  -H "Content-Type: application/json" \
-  -H "x-api-key: $RAW_KEY" \
-  -d '{"items":"3 Cotton T-shirts","quantity":3,"unit_value_eur":25}')
-echo "$RUN_RES" | jq .
+# cleared: 200, 1 cent, signed receipt in the body and the headers
+curl -s -D - -X POST $DESK/v1/tools/eu_duty_estimate/run -H "x-api-key: $KEY" -H 'content-type: application/json' \
+  -d '{"lines":[{"description":"cotton t-shirt","origin":"CN","qty":3,"unit_value_eur":25}],"channel":"ioss"}' \
+  -o receipt-call.json | grep x-clearing
 
-RECEIPT_ID=$(echo "$RUN_RES" | jq -r '.clearing_receipt.receipt_id')
+# not on the allowlist: 403, nothing charged
+curl -s -o /dev/null -w '%{http_code}\n' -X POST $DESK/v1/tools/get_app_reviews/run -H "x-api-key: $KEY" \
+  -H 'content-type: application/json' -d '{"apps":["com.spotify.music"]}'
 
-# 3. Verify the cryptographic receipt signature (HTTP 200 OK, signature_valid: true)
-curl -sS "https://agent-clearing-desk.nguyenhieuec.workers.dev/v1/receipts/$RECEIPT_ID" | jq .
+# where the key stands
+curl -s $DESK/v1/usage -H "x-api-key: $KEY"
 
-# 4. Trigger the allowlist guardrail (HTTP 403 tool_not_allowed, $0.00 charged)
-curl -sS -X POST https://agent-clearing-desk.nguyenhieuec.workers.dev/v1/tools/find_tariff_codes/run \
-  -H "Content-Type: application/json" \
-  -H "x-api-key: $RAW_KEY" \
-  -d '{"query":"ceramic mug"}' | jq .
-
-# 5. Inspect real-time metered usage and upstream OpenKrill telemetry
-curl -sS https://agent-clearing-desk.nguyenhieuec.workers.dev/v1/usage \
-  -H "x-api-key: $RAW_KEY" | jq .
+# the admin API is closed without the operator token
+curl -s -o /dev/null -w '%{http_code}\n' $DESK/api/admin/keys
 ```
 
-## 4. Option C: Local & End-to-End Automated Test Suite
+## 3. Verify a receipt offline
 
 ```bash
-git clone https://github.com/nguyenhieuec/agent-clearing-desk.git
-cd agent-clearing-desk
+git clone https://github.com/nguyenhieuec/agent-clearing-desk && cd agent-clearing-desk
+curl -s https://agent-clearing-desk.nguyenhieuec.workers.dev/.well-known/receipt-signing-key.json > public-key.json
+node scripts/verify-receipt.mjs ../receipt-call.json public-key.json
+# {"valid":true,...}; edit amount_mc in the file and it prints valid:false
+```
+
+## 4. As an MCP client
+
+Add the desk as a Streamable HTTP MCP server with the sandbox key in a header:
+
+```json
+{
+  "mcpServers": {
+    "clearing-desk": {
+      "type": "http",
+      "url": "https://agent-clearing-desk.nguyenhieuec.workers.dev/mcp",
+      "headers": { "x-api-key": "cd_live_..." }
+    }
+  }
+}
+```
+
+`tools/list` shows 9 tools: 7 governed tools with their price, plus the free `check_agent_balance` and `get_call_receipt`.
+
+## 5. Run the tests
+
+```bash
 npm install
-npm test
+npm test          # 20 tests on real SQLite with the production migrations
 npm run typecheck
-npm run e2e
+node scripts/run-e2e.mjs out.json   # live sandbox flow; the operator flow needs ADMIN_SECRET
 ```
 
-The `npm run e2e` script runs 12 live assertions against `https://agent-clearing-desk.nguyenhieuec.workers.dev` and writes the full verification log to `submission/galuxium/e2e-live-output.json`.
+Node 22.5 or newer is needed for `node:sqlite`.
