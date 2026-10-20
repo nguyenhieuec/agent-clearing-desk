@@ -2,6 +2,7 @@ import type { Env, JsonSchema, Millicents } from './types.ts';
 import { BUILTIN_TOOLS, DESK_TOOLS, findBuiltinTool, type GovernedTool } from './tools.ts';
 import { listMcpServerTools } from './upstream.ts';
 import { sealSecret } from './sealed-secret.ts';
+import { invalidPatterns } from './json-schema.ts';
 
 interface CustomToolRow {
   name: string;
@@ -112,6 +113,8 @@ export async function registerMcpTool(env: Env, input: NewMcpTool): Promise<Gove
   }
   const remote = listed.find(t => t.name === input.upstreamTool);
   if (!remote) return `${input.mcpUrl} does not list a tool named ${input.upstreamTool}`;
+  const badPatterns = invalidPatterns(remote.inputSchema);
+  if (badPatterns.length > 0) return `the input schema of ${input.upstreamTool} has a pattern the desk cannot check: ${badPatterns[0]}`;
   const row: CustomToolRow = {
     name: input.name,
     title: input.title || input.upstreamTool,

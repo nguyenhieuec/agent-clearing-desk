@@ -178,7 +178,8 @@ async function refundFailure(
   upstream: { status: number; message: string },
   latencyMs: number
 ): Promise<ClearingOutcome> {
-  await countFailedCall(ctx.env.DB, ctx.key.key_id, Date.now());
+  // An upstream that refuses the desk's own credential (401/403) is the operator's fault, not the agent's.
+  if (upstream.status !== 401 && upstream.status !== 403) await countFailedCall(ctx.env.DB, ctx.key.key_id, Date.now());
   const receipt = await writeLedger(ctx, tool, {
     status: 'upstream_error',
     statusCode: upstream.status,

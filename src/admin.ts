@@ -14,7 +14,7 @@ import {
   updateAgentBudget,
 } from './db.ts';
 import { balanceView, parseAllowlist, receiptView } from './clearing.ts';
-import { timingSafeEqual } from './crypto.ts';
+import { sha256Hex, timingSafeEqual } from './crypto.ts';
 import { centsToMc, mcToCents } from './money.ts';
 import type { BudgetPeriod } from './types.ts';
 import { BUDGET_PERIODS } from './budget-period.ts';
@@ -276,6 +276,15 @@ export const SANDBOX_KEY = {
 };
 
 /**
+ * The counter name for one client of the public sandbox: a hash of its IP and the UTC day,
+ * so one script cannot use up the daily cap for every judge, and no raw IP is stored.
+ */
+async function sandboxClient(request: Request): Promise<string> {
+  const ip = request.headers.get('cf-connecting-ip') || 'unknown';
+  return `sandbox_ip:${(await sha256Hex(`${ip}|${new Date().toISOString().slice(0, 10)}`)).slice(0, 24)}`;
+}
+
+/**
  * POST /api/demo/keys: anyone may mint one sandbox key with a fixed 2 cent budget,
  * a fixed 2-tool allowlist and a 60 minute life, in its own organization so no
  * sandbox key can read another one's receipts. A global daily cap, taken in one
@@ -283,6 +292,13 @@ export const SANDBOX_KEY = {
  */
 export async function handleDemoKeyRequest(request: Request, env: Env): Promise<Response> {
   if (request.method !== 'POST') return bad('Use POST', 405);
+  const perClient = Number(env.DEMO_KEYS_PER_IP || 5);
+  if ((await claimDailySlot(env.DB, await sandboxClient(request), perClient, Date.now())) === null) {
+    return jsonResponse(
+      { error: { code: 'rate_limited', message: `This network minted its ${perClient} sandbox keys for today (UTC). Try again tomorrow.` } },
+      429
+    );
+  }
   const limit = Number(env.DEMO_DAILY_KEY_LIMIT || 100);
   const slot = await claimDailySlot(env.DB, 'sandbox_keys', limit, Date.now());
   if (slot === null) {

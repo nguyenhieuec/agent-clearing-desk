@@ -8,6 +8,21 @@ type Schema = Record<string, unknown>;
 
 const MAX_ERRORS = 5;
 
+/** Compiled `pattern` keywords; a schema is stored once, so each pattern compiles once per isolate. */
+const patterns = new Map<string, RegExp | null>();
+
+/** The pattern as a RegExp, or null when it is not valid in Unicode mode (then the upstream checks it). */
+function compilePattern(source: string): RegExp | null {
+  if (!patterns.has(source)) {
+    try {
+      patterns.set(source, new RegExp(source, 'u'));
+    } catch {
+      patterns.set(source, null);
+    }
+  }
+  return patterns.get(source) ?? null;
+}
+
 function typeOf(value: unknown): string {
   if (value === null) return 'null';
   if (Array.isArray(value)) return 'array';
@@ -24,7 +39,8 @@ function matchesType(expected: unknown, value: unknown): boolean {
 function checkString(s: Schema, value: string, path: string, errors: string[]): void {
   if (typeof s.minLength === 'number' && value.length < s.minLength) errors.push(`${path} must have at least ${s.minLength} characters`);
   if (typeof s.maxLength === 'number' && value.length > s.maxLength) errors.push(`${path} must have at most ${s.maxLength} characters`);
-  if (typeof s.pattern === 'string' && !new RegExp(s.pattern, 'u').test(value)) errors.push(`${path} must match ${s.pattern}`);
+  const re = typeof s.pattern === 'string' ? compilePattern(s.pattern) : null;
+  if (re && !re.test(value)) errors.push(`${path} must match ${s.pattern}`);
 }
 
 function checkNumber(s: Schema, value: number, path: string, errors: string[]): void {
@@ -44,7 +60,8 @@ function checkObject(s: Schema, value: Record<string, unknown>, path: string, er
     if (value[field] === undefined || value[field] === null || value[field] === '') errors.push(`${path}.${field} is required`);
   }
   for (const [field, v] of Object.entries(value)) {
-    if (props[field]) walk(props[field], v, `${path}.${field}`, errors);
+    // Own properties only: "constructor" or "toString" must not pass as declared via Object.prototype.
+    if (Object.hasOwn(props, field)) walk(props[field], v, `${path}.${field}`, errors);
     else if (s.additionalProperties === false) errors.push(`${path}.${field} is not an allowed argument`);
   }
 }
@@ -66,6 +83,14 @@ function walk(s: Schema, value: unknown, path: string, errors: string[]): void {
   else if (typeof value === 'number') checkNumber(s, value, path, errors);
   else if (Array.isArray(value)) checkArray(s, value, path, errors);
   else if (value && typeof value === 'object') checkObject(s, value as Record<string, unknown>, path, errors);
+}
+
+/** Every `pattern` in a schema that cannot compile as a Unicode RegExp, so a tool with one is refused when added. */
+export function invalidPatterns(schema: unknown): string[] {
+  if (!schema || typeof schema !== 'object') return [];
+  const own = (schema as Schema).pattern;
+  const bad = typeof own === 'string' && compilePattern(own) === null ? [own] : [];
+  return [...bad, ...Object.values(schema as Schema).flatMap(invalidPatterns)];
 }
 
 /** Problems with `value` under `schema`, at most 5, as short readable lines; [] when it fits. */

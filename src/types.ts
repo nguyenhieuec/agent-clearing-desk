@@ -14,6 +14,8 @@ export interface Env {
   RECEIPT_SIGNING_KEY: string;
   /** How many public sandbox keys may be minted per UTC day. */
   DEMO_DAILY_KEY_LIMIT?: string;
+  /** Sandbox keys one client IP may mint per UTC day; default 5. */
+  DEMO_KEYS_PER_IP?: string;
   /** Failed (refunded) upstream calls one key may make per UTC hour; default 20. */
   FAILED_CALLS_PER_HOUR?: string;
   /** 32 random bytes in base64; seals upstream credentials operators add at run time. */

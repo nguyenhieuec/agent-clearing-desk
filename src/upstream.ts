@@ -23,19 +23,25 @@ function headers(apiKey?: string): Record<string, string> {
   return h;
 }
 
-/** Streamable HTTP MCP servers may answer with one SSE message instead of plain JSON. */
-async function readJsonRpc(res: Response): Promise<Record<string, unknown>> {
+/**
+ * Streamable HTTP MCP servers may answer with an SSE stream instead of plain JSON. The stream
+ * can carry progress and log notifications before the answer, so only the message whose id
+ * is the request id counts: a stream without it is a failure, never an empty paid answer.
+ */
+async function readJsonRpc(res: Response, id: number): Promise<Record<string, unknown>> {
   const text = await res.text();
   if (!(res.headers.get('content-type') || '').includes('text/event-stream')) {
     return JSON.parse(text) as Record<string, unknown>;
   }
-  const data = text
+  const answer = text
     .split('\n')
     .filter(line => line.startsWith('data:'))
     .map(line => line.slice(5).trim())
-    .find(line => line.startsWith('{'));
-  if (!data) throw new Error('empty event stream from upstream');
-  return JSON.parse(data) as Record<string, unknown>;
+    .filter(line => line.startsWith('{'))
+    .map(line => JSON.parse(line) as Record<string, unknown>)
+    .find(message => message.id === id && ('result' in message || 'error' in message));
+  if (!answer) throw new Error(`the upstream event stream has no answer for request ${id}`);
+  return answer;
 }
 
 function mcpResultData(result: Record<string, unknown>): unknown {
@@ -88,7 +94,7 @@ async function openMcpSession(
     params: { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'agent-clearing-desk', version: '0.4.0' } },
   }, signal);
   if (!res.ok) return { ok: false, status: res.status, message: `initialize answered HTTP ${res.status}` };
-  const rpc = await readJsonRpc(res);
+  const rpc = await readJsonRpc(res, 0);
   if (rpc.error) return { ok: false, status: 502, message: `initialize failed: ${(rpc.error as { message?: string }).message ?? 'error'}` };
   const session = res.headers.get('mcp-session-id');
   const version = (rpc.result as { protocolVersion?: string } | undefined)?.protocolVersion;
@@ -100,6 +106,25 @@ async function openMcpSession(
 /** JSON-RPC "invalid params" is the agent's mistake, like an HTTP 400. */
 const INVALID_PARAMS = -32602;
 
+/**
+ * MCP servers report a refused tool call as a result with isError, and many (OpenKrill among
+ * them) start its text with an error code: "invalid_input: ZZ is not a VIES country". Codes
+ * that blame the input are the agent's mistake (400); any other tool error stays a 502.
+ */
+const INPUT_ERROR_CODE = /^(invalid_[a-z_]+|bad_[a-z_]+|blocked_url|too_large|not_found):/;
+
+function toolErrorStatus(text: string): number {
+  return INPUT_ERROR_CODE.test(text.trim()) ? 400 : 502;
+}
+
+/** End a stateful session so the server can free it; a failure here never changes the call's outcome. */
+async function closeMcpSession(url: string, h: Record<string, string>): Promise<void> {
+  if (!h['mcp-session-id']) return;
+  await fetch(url, { method: 'DELETE', headers: h, signal: AbortSignal.timeout(2000) })
+    .then(res => res.arrayBuffer())
+    .catch(() => undefined);
+}
+
 async function callMcp(env: Env, tool: McpTool, args: Record<string, unknown>, signal: AbortSignal): Promise<UpstreamResult> {
   const { target } = tool;
   const url = target.url.startsWith('/') ? `${openkrillBase(env)}${target.url}` : target.url;
@@ -109,15 +134,32 @@ async function callMcp(env: Env, tool: McpTool, args: Record<string, unknown>, s
     if (!session.ok) return session;
     h = session.headers;
   }
-  const res = await rpcPost(url, h, { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: target.tool, arguments: args } }, signal);
+  try {
+    return await toolsCall(url, h, target.tool, args, signal);
+  } finally {
+    await closeMcpSession(url, h);
+  }
+}
+
+async function toolsCall(
+  url: string,
+  h: Record<string, string>,
+  name: string,
+  args: Record<string, unknown>,
+  signal: AbortSignal
+): Promise<UpstreamResult> {
+  const res = await rpcPost(url, h, { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name, arguments: args } }, signal);
   if (!res.ok) return { ok: false, status: res.status, message: `upstream HTTP ${res.status}` };
-  const rpc = await readJsonRpc(res);
+  const rpc = await readJsonRpc(res, 1);
   if (rpc.error) {
     const err = rpc.error as { code?: number; message?: string };
     return { ok: false, status: err.code === INVALID_PARAMS ? 400 : 502, message: err.message || 'upstream JSON-RPC error' };
   }
   const result = (rpc.result ?? {}) as Record<string, unknown>;
-  if (result.isError) return { ok: false, status: 502, message: errorText(result) };
+  if (result.isError) {
+    const message = errorText(result);
+    return { ok: false, status: toolErrorStatus(message), message };
+  }
   return { ok: true, data: mcpResultData(result) };
 }
 
@@ -155,8 +197,15 @@ export async function listMcpServerTools(
   const session = await openMcpSession(url, { ...headers(), ...(auth ? { [auth.name]: auth.value } : {}) }, signal);
   if (!session.ok) throw new Error(session.message);
   const res = await rpcPost(url, session.headers, { jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} }, signal);
-  if (!res.ok) throw new Error(`tools/list answered HTTP ${res.status}`);
-  const rpc = await readJsonRpc(res);
+  try {
+    if (!res.ok) throw new Error(`tools/list answered HTTP ${res.status}`);
+    return toolArray(await readJsonRpc(res, 1));
+  } finally {
+    await closeMcpSession(url, session.headers);
+  }
+}
+
+function toolArray(rpc: Record<string, unknown>): { name: string; description?: string; inputSchema?: unknown }[] {
   const tools = (rpc.result as { tools?: unknown } | undefined)?.tools;
   if (!Array.isArray(tools)) throw new Error('tools/list returned no tools array');
   return tools as { name: string; description?: string; inputSchema?: unknown }[];

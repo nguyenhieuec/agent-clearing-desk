@@ -1,8 +1,8 @@
 {
   "base_url": "https://agent-clearing-desk.nguyenhieuec.workers.dev",
-  "started": "2026-10-20T17:45:36.074Z",
-  "finished": "2026-10-20T17:46:21.571Z",
-  "passed": 40,
+  "started": "2026-10-20T18:12:58.640Z",
+  "finished": "2026-10-20T18:13:45.222Z",
+  "passed": 43,
   "failed": 0,
   "steps": [
     {
@@ -10,12 +10,12 @@
       "pass": true,
       "status": 200,
       "expected": 200,
-      "ms": 706,
+      "ms": 343,
       "headers": {},
       "body": {
         "status": "ok",
         "service": "agent-clearing-desk",
-        "time": 1792518336714
+        "time": 1792519978948
       }
     },
     {
@@ -23,7 +23,7 @@
       "pass": true,
       "status": 200,
       "expected": 200,
-      "ms": 125,
+      "ms": 95,
       "headers": {},
       "body": {
         "keys": [
@@ -43,7 +43,7 @@
       "pass": true,
       "status": 401,
       "expected": 401,
-      "ms": 126,
+      "ms": 96,
       "headers": {},
       "body": {
         "error": {
@@ -57,11 +57,11 @@
       "pass": true,
       "status": 201,
       "expected": 201,
-      "ms": 401,
+      "ms": 583,
       "headers": {},
       "body": {
         "key": "cd_live_…masked",
-        "key_id": "key_11a66bb0804d6f74",
+        "key_id": "key_4832782f8a9884bd",
         "budget_period": "none",
         "resets_at": null,
         "budget_cents": 2,
@@ -69,18 +69,18 @@
         "remaining_cents": 2,
         "remaining_usd": "$0.02000",
         "key_prefix": "cd_live_…masked",
-        "org_id": "org_31a63cf7c033bc8a",
-        "name": "sandbox-17:45:37",
+        "org_id": "org_8dda7b5952a95de4",
+        "name": "sandbox #16",
         "allowlist": [
           "eu_duty_estimate",
           "check_vat_number"
         ],
         "price_overrides_cents": {},
         "status": "active",
-        "expires_at": 1792521937378,
-        "created_at": 1792518337378,
-        "updated_at": 1792518337378,
-        "sandbox_keys_left_today": 89
+        "expires_at": 1792523579697,
+        "created_at": 1792519979697,
+        "updated_at": 1792519979697,
+        "sandbox_keys_left_today": 84
       }
     },
     {
@@ -88,28 +88,28 @@
       "pass": true,
       "status": 200,
       "expected": 200,
-      "ms": 874,
+      "ms": 1061,
       "headers": {
         "x-clearing-price-cents": "1",
-        "x-clearing-receipt": "rcpt_d956a8c86050c1df04352a77",
+        "x-clearing-receipt": "rcpt_dff23272670fb870a5540124",
         "x-clearing-remaining-budget-cents": "1",
-        "x-clearing-signature": "hbHHtAgfDrFVPbnEVPD5ARdqYG4ERSKz5oP3OIyyCavt_uPox2D8qARs_cXX41UhTCZQLfeOlFsKFFKwo9YZCQ"
+        "x-clearing-signature": "nGxg76AKO3Cwe8DOG7P5GXDLjt8cVnuZb31HpgYQYHzRF4nAaAwsLDFeQDa5SgFASc850YrH0FyV5FEeiyzHBA"
       },
       "body": {
         "result": "{\"as_of\":\"2026-07-01\",\"source\":{\"name\":\"EU Official Journal: Council Regulation (EU) 2026/382 of 11 February 2026\",\"url\":\"http://data.europa.eu/eli/reg/2026/382/oj\"},\"legal_basis\":[{\"instrument\":\"Council Regulation (EU) 2026/382 of 11 February 2026\",\"use\":\"Article 2: EUR 3 customs duty per item in a consignment of intrinsic value up to EUR 150 that is VAT-exempt under the Import One-Stop Shop (Art",
         "receipt": {
-          "receipt_id": "rcpt_d956a8c86050c1df04352a77",
-          "payload": "{\"v\":\"cd-receipt-v4\",\"receipt_id\":\"rcpt_d956a8c86050c1df04352a77\",\"audit_log_id\":\"aud_d956a8c86050c1df04352a77\",\"org_id\":\"org_31a63cf7c033bc8a\",\"key_id\":\"key_11a66bb0804d6f74\",\"tool\":\"eu_duty_estimate\",\"upstream\":\"openkrill\",\"protocol\":\"http\",\"outcome\":\"success\",\"http_status\":200,\"amount_mc\":1000,\"cost_mc\":500,\"currency\":\"USD\",\"params_sha256\":\"fc00a1314204eb4a3be4129b57b0c443397b597974b22e2e50d14c5584c4b7b5\",\"result_sha256\":\"8c8416fd313c7556f41155509942beb31c44fa7bd31f71a5fe36875e7c83511f\",\"issued_at\":1792518338196}",
-          "signature": "hbHHtAgfDrFVPbnEVPD5ARdqYG4ERSKz5oP3OIyyCavt_uPox2D8qARs_cXX41UhTCZQLfeOlFsKFFKwo9YZCQ",
+          "receipt_id": "rcpt_dff23272670fb870a5540124",
+          "payload": "{\"v\":\"cd-receipt-v4\",\"receipt_id\":\"rcpt_dff23272670fb870a5540124\",\"audit_log_id\":\"aud_dff23272670fb870a5540124\",\"org_id\":\"org_8dda7b5952a95de4\",\"key_id\":\"key_4832782f8a9884bd\",\"tool\":\"eu_duty_estimate\",\"upstream\":\"openkrill\",\"protocol\":\"http\",\"outcome\":\"success\",\"http_status\":200,\"amount_mc\":1000,\"cost_mc\":500,\"currency\":\"USD\",\"params_sha256\":\"fc00a1314204eb4a3be4129b57b0c443397b597974b22e2e50d14c5584c4b7b5\",\"result_sha256\":\"8c8416fd313c7556f41155509942beb31c44fa7bd31f71a5fe36875e7c83511f\",\"issued_at\":1792519980751}",
+          "signature": "nGxg76AKO3Cwe8DOG7P5GXDLjt8cVnuZb31HpgYQYHzRF4nAaAwsLDFeQDa5SgFASc850YrH0FyV5FEeiyzHBA",
           "alg": "Ed25519",
           "key_fingerprint": "0a076341b06e39ac",
           "public_key_url": "/.well-known/receipt-signing-key.json",
           "unsigned_view": {
             "v": "cd-receipt-v4",
-            "receipt_id": "rcpt_d956a8c86050c1df04352a77",
-            "audit_log_id": "aud_d956a8c86050c1df04352a77",
-            "org_id": "org_31a63cf7c033bc8a",
-            "key_id": "key_11a66bb0804d6f74",
+            "receipt_id": "rcpt_dff23272670fb870a5540124",
+            "audit_log_id": "aud_dff23272670fb870a5540124",
+            "org_id": "org_8dda7b5952a95de4",
+            "key_id": "key_4832782f8a9884bd",
             "tool": "eu_duty_estimate",
             "upstream": "openkrill",
             "protocol": "http",
@@ -120,11 +120,11 @@
             "currency": "USD",
             "params_sha256": "fc00a1314204eb4a3be4129b57b0c443397b597974b22e2e50d14c5584c4b7b5",
             "result_sha256": "8c8416fd313c7556f41155509942beb31c44fa7bd31f71a5fe36875e7c83511f",
-            "issued_at": 1792518338196
+            "issued_at": 1792519980751
           }
         },
         "balance": {
-          "key_id": "key_11a66bb0804d6f74",
+          "key_id": "key_4832782f8a9884bd",
           "budget_period": "none",
           "resets_at": null,
           "budget_cents": 2,
@@ -139,38 +139,38 @@
       "pass": true,
       "status": 403,
       "expected": 403,
-      "ms": 180,
+      "ms": 126,
       "headers": {
         "x-clearing-price-cents": "0",
-        "x-clearing-receipt": "rcpt_845fcf6201a617a4f9a1c96a",
+        "x-clearing-receipt": "rcpt_ca2adf9e070a090813ed0ac9",
         "x-clearing-remaining-budget-cents": "1",
-        "x-clearing-signature": "2j-AwczShcw-kc6JZKOVFe13x3RnHlCa-Lk7AyXzVveosCwEIYzxTFBbP0DshKZsuF73NqLJWWDTQZaGcsBoAg"
+        "x-clearing-signature": "K8uiKPq4TqKK0LUPX5mzhGr6xFvRsXI9J5zs0JkXygZyFQ74fKeswIHmt7Qx4uXygVqQsFKCUEmgGS9FTaoYAw"
       },
       "body": {
         "error": {
           "code": "tool_not_allowed",
           "message": "Tool 'get_app_reviews' is not on this agent key's allowlist. Nothing was charged.",
-          "key_id": "key_11a66bb0804d6f74",
+          "key_id": "key_4832782f8a9884bd",
           "tool_name": "get_app_reviews",
           "allowlist": [
             "eu_duty_estimate",
             "check_vat_number"
           ],
-          "receipt_id": "rcpt_845fcf6201a617a4f9a1c96a"
+          "receipt_id": "rcpt_ca2adf9e070a090813ed0ac9"
         },
         "receipt": {
-          "receipt_id": "rcpt_845fcf6201a617a4f9a1c96a",
-          "payload": "{\"v\":\"cd-receipt-v4\",\"receipt_id\":\"rcpt_845fcf6201a617a4f9a1c96a\",\"audit_log_id\":\"aud_845fcf6201a617a4f9a1c96a\",\"org_id\":\"org_31a63cf7c033bc8a\",\"key_id\":\"key_11a66bb0804d6f74\",\"tool\":\"get_app_reviews\",\"upstream\":\"openkrill\",\"protocol\":\"http\",\"outcome\":\"refused_allowlist\",\"http_status\":403,\"amount_mc\":0,\"cost_mc\":0,\"currency\":\"USD\",\"params_sha256\":\"52f574f83690501200dda00a8f1fa7e5717118b6485784ebc2d6e2a486277a0f\",\"result_sha256\":null,\"issued_at\":1792518338418}",
-          "signature": "2j-AwczShcw-kc6JZKOVFe13x3RnHlCa-Lk7AyXzVveosCwEIYzxTFBbP0DshKZsuF73NqLJWWDTQZaGcsBoAg",
+          "receipt_id": "rcpt_ca2adf9e070a090813ed0ac9",
+          "payload": "{\"v\":\"cd-receipt-v4\",\"receipt_id\":\"rcpt_ca2adf9e070a090813ed0ac9\",\"audit_log_id\":\"aud_ca2adf9e070a090813ed0ac9\",\"org_id\":\"org_8dda7b5952a95de4\",\"key_id\":\"key_4832782f8a9884bd\",\"tool\":\"get_app_reviews\",\"upstream\":\"openkrill\",\"protocol\":\"http\",\"outcome\":\"refused_allowlist\",\"http_status\":403,\"amount_mc\":0,\"cost_mc\":0,\"currency\":\"USD\",\"params_sha256\":\"52f574f83690501200dda00a8f1fa7e5717118b6485784ebc2d6e2a486277a0f\",\"result_sha256\":null,\"issued_at\":1792519980893}",
+          "signature": "K8uiKPq4TqKK0LUPX5mzhGr6xFvRsXI9J5zs0JkXygZyFQ74fKeswIHmt7Qx4uXygVqQsFKCUEmgGS9FTaoYAw",
           "alg": "Ed25519",
           "key_fingerprint": "0a076341b06e39ac",
           "public_key_url": "/.well-known/receipt-signing-key.json",
           "unsigned_view": {
             "v": "cd-receipt-v4",
-            "receipt_id": "rcpt_845fcf6201a617a4f9a1c96a",
-            "audit_log_id": "aud_845fcf6201a617a4f9a1c96a",
-            "org_id": "org_31a63cf7c033bc8a",
-            "key_id": "key_11a66bb0804d6f74",
+            "receipt_id": "rcpt_ca2adf9e070a090813ed0ac9",
+            "audit_log_id": "aud_ca2adf9e070a090813ed0ac9",
+            "org_id": "org_8dda7b5952a95de4",
+            "key_id": "key_4832782f8a9884bd",
             "tool": "get_app_reviews",
             "upstream": "openkrill",
             "protocol": "http",
@@ -181,11 +181,11 @@
             "currency": "USD",
             "params_sha256": "52f574f83690501200dda00a8f1fa7e5717118b6485784ebc2d6e2a486277a0f",
             "result_sha256": null,
-            "issued_at": 1792518338418
+            "issued_at": 1792519980893
           }
         },
         "balance": {
-          "key_id": "key_11a66bb0804d6f74",
+          "key_id": "key_4832782f8a9884bd",
           "budget_period": "none",
           "resets_at": null,
           "budget_cents": 2,
@@ -200,28 +200,28 @@
       "pass": true,
       "status": 200,
       "expected": 200,
-      "ms": 1075,
+      "ms": 720,
       "headers": {
         "x-clearing-price-cents": "1",
-        "x-clearing-receipt": "rcpt_6ae62b4697db7961ace8c0a9",
+        "x-clearing-receipt": "rcpt_f8bb0e9c24247413f72d53b6",
         "x-clearing-remaining-budget-cents": "0",
-        "x-clearing-signature": "e1_ci375Tos39ifg3IxEaIyuXNsas4fn7hYTyDFE2ATOabuRpgwG2lPwHkKOHUejvCnjqfYaLpZKOWH0qzIrDw"
+        "x-clearing-signature": "GZwE-bYgEOUEWZ4NtyN9ZKfVndyr1CW3ElAH51K7j6Ysd7XTdtCSU1j0zhvxpVEJKEniCl1MrOqwdO2nYpbuAA"
       },
       "body": {
-        "result": "{\"as_of\":\"2026-10-20T16:51:46.160Z\",\"country\":\"IE\",\"vatNumber\":\"6388047V\",\"valid\":true,\"checkedAt\":\"2026-10-20T16:51:46.140Z\",\"name\":\"GOOGLE IRELAND LIMITED\",\"address\":\"3RD FLOOR, GORDON HOUSE, BARROW STREET, DUBLIN 4\",\"notice\":\"A valid result means the number is registered for VAT in that member state, as the member state's own register reports it on the date shown. It does not say the business i",
+        "result": "{\"as_of\":\"2026-10-20T18:02:02.325Z\",\"country\":\"IE\",\"vatNumber\":\"6388047V\",\"valid\":true,\"checkedAt\":\"2026-10-20T18:02:02.309Z\",\"name\":\"GOOGLE IRELAND LIMITED\",\"address\":\"3RD FLOOR, GORDON HOUSE, BARROW STREET, DUBLIN 4\",\"notice\":\"A valid result means the number is registered for VAT in that member state, as the member state's own register reports it on the date shown. It does not say the business i",
         "receipt": {
-          "receipt_id": "rcpt_6ae62b4697db7961ace8c0a9",
-          "payload": "{\"v\":\"cd-receipt-v4\",\"receipt_id\":\"rcpt_6ae62b4697db7961ace8c0a9\",\"audit_log_id\":\"aud_6ae62b4697db7961ace8c0a9\",\"org_id\":\"org_31a63cf7c033bc8a\",\"key_id\":\"key_11a66bb0804d6f74\",\"tool\":\"check_vat_number\",\"upstream\":\"openkrill\",\"protocol\":\"http\",\"outcome\":\"success\",\"http_status\":200,\"amount_mc\":1000,\"cost_mc\":500,\"currency\":\"USD\",\"params_sha256\":\"220587e5ea0f963384363a612dcb15366d57f0b541a9ade913a56c85f4564c5e\",\"result_sha256\":\"54c6cf7a4415bfca611391e2b8d04401f9e630063ed7dced39c0adb9e85c7b8e\",\"issued_at\":1792518339184}",
-          "signature": "e1_ci375Tos39ifg3IxEaIyuXNsas4fn7hYTyDFE2ATOabuRpgwG2lPwHkKOHUejvCnjqfYaLpZKOWH0qzIrDw",
+          "receipt_id": "rcpt_f8bb0e9c24247413f72d53b6",
+          "payload": "{\"v\":\"cd-receipt-v4\",\"receipt_id\":\"rcpt_f8bb0e9c24247413f72d53b6\",\"audit_log_id\":\"aud_f8bb0e9c24247413f72d53b6\",\"org_id\":\"org_8dda7b5952a95de4\",\"key_id\":\"key_4832782f8a9884bd\",\"tool\":\"check_vat_number\",\"upstream\":\"openkrill\",\"protocol\":\"http\",\"outcome\":\"success\",\"http_status\":200,\"amount_mc\":1000,\"cost_mc\":500,\"currency\":\"USD\",\"params_sha256\":\"220587e5ea0f963384363a612dcb15366d57f0b541a9ade913a56c85f4564c5e\",\"result_sha256\":\"01e1c5024de20f2fedb76e53420181982860cd6430bdd4b37ec038a2f0c2942a\",\"issued_at\":1792519981604}",
+          "signature": "GZwE-bYgEOUEWZ4NtyN9ZKfVndyr1CW3ElAH51K7j6Ysd7XTdtCSU1j0zhvxpVEJKEniCl1MrOqwdO2nYpbuAA",
           "alg": "Ed25519",
           "key_fingerprint": "0a076341b06e39ac",
           "public_key_url": "/.well-known/receipt-signing-key.json",
           "unsigned_view": {
             "v": "cd-receipt-v4",
-            "receipt_id": "rcpt_6ae62b4697db7961ace8c0a9",
-            "audit_log_id": "aud_6ae62b4697db7961ace8c0a9",
-            "org_id": "org_31a63cf7c033bc8a",
-            "key_id": "key_11a66bb0804d6f74",
+            "receipt_id": "rcpt_f8bb0e9c24247413f72d53b6",
+            "audit_log_id": "aud_f8bb0e9c24247413f72d53b6",
+            "org_id": "org_8dda7b5952a95de4",
+            "key_id": "key_4832782f8a9884bd",
             "tool": "check_vat_number",
             "upstream": "openkrill",
             "protocol": "http",
@@ -231,12 +231,12 @@
             "cost_mc": 500,
             "currency": "USD",
             "params_sha256": "220587e5ea0f963384363a612dcb15366d57f0b541a9ade913a56c85f4564c5e",
-            "result_sha256": "54c6cf7a4415bfca611391e2b8d04401f9e630063ed7dced39c0adb9e85c7b8e",
-            "issued_at": 1792518339184
+            "result_sha256": "01e1c5024de20f2fedb76e53420181982860cd6430bdd4b37ec038a2f0c2942a",
+            "issued_at": 1792519981604
           }
         },
         "balance": {
-          "key_id": "key_11a66bb0804d6f74",
+          "key_id": "key_4832782f8a9884bd",
           "budget_period": "none",
           "resets_at": null,
           "budget_cents": 2,
@@ -251,18 +251,18 @@
       "pass": true,
       "status": 402,
       "expected": 402,
-      "ms": 209,
+      "ms": 129,
       "headers": {
         "x-clearing-price-cents": "0",
-        "x-clearing-receipt": "rcpt_1d37afcfd85ea55ecce8b10f",
+        "x-clearing-receipt": "rcpt_c2be6b0d247fb3ff9b088893",
         "x-clearing-remaining-budget-cents": "0",
-        "x-clearing-signature": "ecPJKaey5oUEcpOFmqFf_f595qIrfrPZXFIlF1dyqhCrWDyjEkWTNubKd6iUbYP4jgwRrnECuFhAApbE6_FjBw"
+        "x-clearing-signature": "2X7y2tgeAJmnkEvi3TeqEJmcztOqedg73fH7FXXp9jHKvCR58ApTRzK_NfpnaWmWmWMCn5NuTeeLlZIU0UPICw"
       },
       "body": {
         "error": {
           "code": "budget_exceeded",
           "message": "Budget exceeded: $0.00000 left, eu_duty_estimate costs $0.01000. Stop calling paid tools with this key.",
-          "key_id": "key_11a66bb0804d6f74",
+          "key_id": "key_4832782f8a9884bd",
           "budget_period": "none",
           "resets_at": null,
           "budget_cents": 2,
@@ -271,21 +271,21 @@
           "remaining_usd": "$0.00000",
           "tool_name": "eu_duty_estimate",
           "call_price_cents": 1,
-          "receipt_id": "rcpt_1d37afcfd85ea55ecce8b10f"
+          "receipt_id": "rcpt_c2be6b0d247fb3ff9b088893"
         },
         "receipt": {
-          "receipt_id": "rcpt_1d37afcfd85ea55ecce8b10f",
-          "payload": "{\"v\":\"cd-receipt-v4\",\"receipt_id\":\"rcpt_1d37afcfd85ea55ecce8b10f\",\"audit_log_id\":\"aud_1d37afcfd85ea55ecce8b10f\",\"org_id\":\"org_31a63cf7c033bc8a\",\"key_id\":\"key_11a66bb0804d6f74\",\"tool\":\"eu_duty_estimate\",\"upstream\":\"openkrill\",\"protocol\":\"http\",\"outcome\":\"refused_budget\",\"http_status\":402,\"amount_mc\":0,\"cost_mc\":0,\"currency\":\"USD\",\"params_sha256\":\"fc00a1314204eb4a3be4129b57b0c443397b597974b22e2e50d14c5584c4b7b5\",\"result_sha256\":null,\"issued_at\":1792518339692}",
-          "signature": "ecPJKaey5oUEcpOFmqFf_f595qIrfrPZXFIlF1dyqhCrWDyjEkWTNubKd6iUbYP4jgwRrnECuFhAApbE6_FjBw",
+          "receipt_id": "rcpt_c2be6b0d247fb3ff9b088893",
+          "payload": "{\"v\":\"cd-receipt-v4\",\"receipt_id\":\"rcpt_c2be6b0d247fb3ff9b088893\",\"audit_log_id\":\"aud_c2be6b0d247fb3ff9b088893\",\"org_id\":\"org_8dda7b5952a95de4\",\"key_id\":\"key_4832782f8a9884bd\",\"tool\":\"eu_duty_estimate\",\"upstream\":\"openkrill\",\"protocol\":\"http\",\"outcome\":\"refused_budget\",\"http_status\":402,\"amount_mc\":0,\"cost_mc\":0,\"currency\":\"USD\",\"params_sha256\":\"fc00a1314204eb4a3be4129b57b0c443397b597974b22e2e50d14c5584c4b7b5\",\"result_sha256\":null,\"issued_at\":1792519981737}",
+          "signature": "2X7y2tgeAJmnkEvi3TeqEJmcztOqedg73fH7FXXp9jHKvCR58ApTRzK_NfpnaWmWmWMCn5NuTeeLlZIU0UPICw",
           "alg": "Ed25519",
           "key_fingerprint": "0a076341b06e39ac",
           "public_key_url": "/.well-known/receipt-signing-key.json",
           "unsigned_view": {
             "v": "cd-receipt-v4",
-            "receipt_id": "rcpt_1d37afcfd85ea55ecce8b10f",
-            "audit_log_id": "aud_1d37afcfd85ea55ecce8b10f",
-            "org_id": "org_31a63cf7c033bc8a",
-            "key_id": "key_11a66bb0804d6f74",
+            "receipt_id": "rcpt_c2be6b0d247fb3ff9b088893",
+            "audit_log_id": "aud_c2be6b0d247fb3ff9b088893",
+            "org_id": "org_8dda7b5952a95de4",
+            "key_id": "key_4832782f8a9884bd",
             "tool": "eu_duty_estimate",
             "upstream": "openkrill",
             "protocol": "http",
@@ -296,11 +296,11 @@
             "currency": "USD",
             "params_sha256": "fc00a1314204eb4a3be4129b57b0c443397b597974b22e2e50d14c5584c4b7b5",
             "result_sha256": null,
-            "issued_at": 1792518339692
+            "issued_at": 1792519981737
           }
         },
         "balance": {
-          "key_id": "key_11a66bb0804d6f74",
+          "key_id": "key_4832782f8a9884bd",
           "budget_period": "none",
           "resets_at": null,
           "budget_cents": 2,
@@ -315,11 +315,11 @@
       "pass": true,
       "status": 200,
       "expected": 200,
-      "ms": 124,
+      "ms": 128,
       "headers": {},
       "body": {
         "period": "2026-10",
-        "key_id": "key_11a66bb0804d6f74",
+        "key_id": "key_4832782f8a9884bd",
         "budget_period": "none",
         "resets_at": null,
         "budget_cents": 2,
@@ -346,22 +346,22 @@
       "pass": true,
       "results": [
         {
-          "id": "rcpt_d956a8c86050c1df04352a77",
+          "id": "rcpt_dff23272670fb870a5540124",
           "valid": true,
           "tampered_valid": false
         },
         {
-          "id": "rcpt_845fcf6201a617a4f9a1c96a",
+          "id": "rcpt_ca2adf9e070a090813ed0ac9",
           "valid": true,
           "tampered_valid": false
         },
         {
-          "id": "rcpt_6ae62b4697db7961ace8c0a9",
+          "id": "rcpt_f8bb0e9c24247413f72d53b6",
           "valid": true,
           "tampered_valid": false
         },
         {
-          "id": "rcpt_1d37afcfd85ea55ecce8b10f",
+          "id": "rcpt_c2be6b0d247fb3ff9b088893",
           "valid": true,
           "tampered_valid": false
         }
@@ -372,28 +372,28 @@
       "pass": true,
       "status": 200,
       "expected": 200,
-      "ms": 15473,
+      "ms": 14285,
       "headers": {
         "x-clearing-price-cents": "1",
-        "x-clearing-receipt": "rcpt_1be236d4e96598f737986316",
+        "x-clearing-receipt": "rcpt_6882b1c8f187fecd2ade6d75",
         "x-clearing-remaining-budget-cents": "4",
-        "x-clearing-signature": "CYDCPgglMxcm7QUQ7p6xHzCLT-j9jhbgcsCO5lzPRDfFmjGapudoPtax1vRg_ws_vqEs970297FGNovazsq7DQ"
+        "x-clearing-signature": "MEJsbs_bHOfc6Gwpf6Eepcn4C67N4EJoNXjH467i4BJgGkMZuyst8ZrQ0fei5IHoOkS7vp-zn5xbT8oTol9sAw"
       },
       "body": {
-        "result": "{\"result\":\"Wrangler applies D1 migrations through the `d1MigrationsApplyCommand` which orchestrates the process of identifying unapplied migrations and executing them against a D1 database, either locally or remotely . This command initializes a migrations table, determines which migrations are pending, prompts for user confirmation, and then executes each migration sequentially    .\\n\\n## Migrati",
+        "result": "{\"result\":\"Wrangler applies D1 migrations through the `d1MigrationsApplyCommand` function, which is part of the `wrangler d1 migrations apply` CLI command. This command orchestrates the process of identifying unapplied migrations, confirming them with the user, and then executing each migration's SQL statements against the D1 database. \\n\\n## Migration Application Process\\n\\nThe `d1MigrationsApply",
         "receipt": {
-          "receipt_id": "rcpt_1be236d4e96598f737986316",
-          "payload": "{\"v\":\"cd-receipt-v4\",\"receipt_id\":\"rcpt_1be236d4e96598f737986316\",\"audit_log_id\":\"aud_1be236d4e96598f737986316\",\"org_id\":\"org_ca80be30b32d8274\",\"key_id\":\"key_ab38bd0a6d71e5c5\",\"tool\":\"ask_repo_question\",\"upstream\":\"deepwiki\",\"protocol\":\"http\",\"outcome\":\"success\",\"http_status\":200,\"amount_mc\":1000,\"cost_mc\":0,\"currency\":\"USD\",\"params_sha256\":\"85a56d4490dcde33433d9870ef1f307dd29bbc5670547246f8ca50049bf5dff0\",\"result_sha256\":\"855f468bda1c9d3bb26262044648d00e5963b206116f9809d54dd5b2b42b39ef\",\"issued_at\":1792518355830}",
-          "signature": "CYDCPgglMxcm7QUQ7p6xHzCLT-j9jhbgcsCO5lzPRDfFmjGapudoPtax1vRg_ws_vqEs970297FGNovazsq7DQ",
+          "receipt_id": "rcpt_6882b1c8f187fecd2ade6d75",
+          "payload": "{\"v\":\"cd-receipt-v4\",\"receipt_id\":\"rcpt_6882b1c8f187fecd2ade6d75\",\"audit_log_id\":\"aud_6882b1c8f187fecd2ade6d75\",\"org_id\":\"org_0b1bf6cd407af618\",\"key_id\":\"key_98f75a11db6007fa\",\"tool\":\"ask_repo_question\",\"upstream\":\"deepwiki\",\"protocol\":\"http\",\"outcome\":\"success\",\"http_status\":200,\"amount_mc\":1000,\"cost_mc\":0,\"currency\":\"USD\",\"params_sha256\":\"85a56d4490dcde33433d9870ef1f307dd29bbc5670547246f8ca50049bf5dff0\",\"result_sha256\":\"6fe61c3fdfacc899f06e6628056661388b8f1d87020e24bdb6269dd55e5d142b\",\"issued_at\":1792519996615}",
+          "signature": "MEJsbs_bHOfc6Gwpf6Eepcn4C67N4EJoNXjH467i4BJgGkMZuyst8ZrQ0fei5IHoOkS7vp-zn5xbT8oTol9sAw",
           "alg": "Ed25519",
           "key_fingerprint": "0a076341b06e39ac",
           "public_key_url": "/.well-known/receipt-signing-key.json",
           "unsigned_view": {
             "v": "cd-receipt-v4",
-            "receipt_id": "rcpt_1be236d4e96598f737986316",
-            "audit_log_id": "aud_1be236d4e96598f737986316",
-            "org_id": "org_ca80be30b32d8274",
-            "key_id": "key_ab38bd0a6d71e5c5",
+            "receipt_id": "rcpt_6882b1c8f187fecd2ade6d75",
+            "audit_log_id": "aud_6882b1c8f187fecd2ade6d75",
+            "org_id": "org_0b1bf6cd407af618",
+            "key_id": "key_98f75a11db6007fa",
             "tool": "ask_repo_question",
             "upstream": "deepwiki",
             "protocol": "http",
@@ -403,12 +403,12 @@
             "cost_mc": 0,
             "currency": "USD",
             "params_sha256": "85a56d4490dcde33433d9870ef1f307dd29bbc5670547246f8ca50049bf5dff0",
-            "result_sha256": "855f468bda1c9d3bb26262044648d00e5963b206116f9809d54dd5b2b42b39ef",
-            "issued_at": 1792518355830
+            "result_sha256": "6fe61c3fdfacc899f06e6628056661388b8f1d87020e24bdb6269dd55e5d142b",
+            "issued_at": 1792519996615
           }
         },
         "balance": {
-          "key_id": "key_ab38bd0a6d71e5c5",
+          "key_id": "key_98f75a11db6007fa",
           "budget_period": "none",
           "resets_at": null,
           "budget_cents": 5,
@@ -423,22 +423,22 @@
       "pass": true,
       "status": 200,
       "expected": 200,
-      "ms": 161,
+      "ms": 101,
       "headers": {},
       "body": {
         "receipt": {
-          "receipt_id": "rcpt_1be236d4e96598f737986316",
-          "payload": "{\"v\":\"cd-receipt-v4\",\"receipt_id\":\"rcpt_1be236d4e96598f737986316\",\"audit_log_id\":\"aud_1be236d4e96598f737986316\",\"org_id\":\"org_ca80be30b32d8274\",\"key_id\":\"key_ab38bd0a6d71e5c5\",\"tool\":\"ask_repo_question\",\"upstream\":\"deepwiki\",\"protocol\":\"http\",\"outcome\":\"success\",\"http_status\":200,\"amount_mc\":1000,\"cost_mc\":0,\"currency\":\"USD\",\"params_sha256\":\"85a56d4490dcde33433d9870ef1f307dd29bbc5670547246f8ca50049bf5dff0\",\"result_sha256\":\"855f468bda1c9d3bb26262044648d00e5963b206116f9809d54dd5b2b42b39ef\",\"issued_at\":1792518355830}",
-          "signature": "CYDCPgglMxcm7QUQ7p6xHzCLT-j9jhbgcsCO5lzPRDfFmjGapudoPtax1vRg_ws_vqEs970297FGNovazsq7DQ",
+          "receipt_id": "rcpt_6882b1c8f187fecd2ade6d75",
+          "payload": "{\"v\":\"cd-receipt-v4\",\"receipt_id\":\"rcpt_6882b1c8f187fecd2ade6d75\",\"audit_log_id\":\"aud_6882b1c8f187fecd2ade6d75\",\"org_id\":\"org_0b1bf6cd407af618\",\"key_id\":\"key_98f75a11db6007fa\",\"tool\":\"ask_repo_question\",\"upstream\":\"deepwiki\",\"protocol\":\"http\",\"outcome\":\"success\",\"http_status\":200,\"amount_mc\":1000,\"cost_mc\":0,\"currency\":\"USD\",\"params_sha256\":\"85a56d4490dcde33433d9870ef1f307dd29bbc5670547246f8ca50049bf5dff0\",\"result_sha256\":\"6fe61c3fdfacc899f06e6628056661388b8f1d87020e24bdb6269dd55e5d142b\",\"issued_at\":1792519996615}",
+          "signature": "MEJsbs_bHOfc6Gwpf6Eepcn4C67N4EJoNXjH467i4BJgGkMZuyst8ZrQ0fei5IHoOkS7vp-zn5xbT8oTol9sAw",
           "alg": "Ed25519",
           "key_fingerprint": "0a076341b06e39ac",
           "public_key_url": "/.well-known/receipt-signing-key.json",
           "unsigned_view": {
             "v": "cd-receipt-v4",
-            "receipt_id": "rcpt_1be236d4e96598f737986316",
-            "audit_log_id": "aud_1be236d4e96598f737986316",
-            "org_id": "org_ca80be30b32d8274",
-            "key_id": "key_ab38bd0a6d71e5c5",
+            "receipt_id": "rcpt_6882b1c8f187fecd2ade6d75",
+            "audit_log_id": "aud_6882b1c8f187fecd2ade6d75",
+            "org_id": "org_0b1bf6cd407af618",
+            "key_id": "key_98f75a11db6007fa",
             "tool": "ask_repo_question",
             "upstream": "deepwiki",
             "protocol": "http",
@@ -448,8 +448,8 @@
             "cost_mc": 0,
             "currency": "USD",
             "params_sha256": "85a56d4490dcde33433d9870ef1f307dd29bbc5670547246f8ca50049bf5dff0",
-            "result_sha256": "855f468bda1c9d3bb26262044648d00e5963b206116f9809d54dd5b2b42b39ef",
-            "issued_at": 1792518355830
+            "result_sha256": "6fe61c3fdfacc899f06e6628056661388b8f1d87020e24bdb6269dd55e5d142b",
+            "issued_at": 1792519996615
           }
         }
       }
@@ -459,12 +459,12 @@
       "pass": true,
       "status": 404,
       "expected": 404,
-      "ms": 127,
+      "ms": 125,
       "headers": {},
       "body": {
         "error": {
           "code": "not_found",
-          "message": "Receipt rcpt_1be236d4e96598f737986316 not found"
+          "message": "Receipt rcpt_6882b1c8f187fecd2ade6d75 not found"
         }
       }
     },
@@ -473,7 +473,7 @@
       "pass": true,
       "results": [
         {
-          "id": "rcpt_1be236d4e96598f737986316",
+          "id": "rcpt_6882b1c8f187fecd2ade6d75",
           "valid": true,
           "tampered_valid": false
         }
@@ -510,10 +510,10 @@
       "pass": true,
       "status": 200,
       "expected": 200,
-      "ms": 189,
+      "ms": 240,
       "headers": {},
       "body": {
-        "key_id": "key_79c1c6cf192e3913",
+        "key_id": "key_8df453105acd2eff",
         "key": "cd_live_…masked",
         "key_prefix": "cd_live_…masked"
       }
@@ -523,7 +523,7 @@
       "pass": true,
       "status": 401,
       "expected": 401,
-      "ms": 148,
+      "ms": 88,
       "headers": {},
       "body": {
         "error": {
@@ -537,28 +537,28 @@
       "pass": true,
       "status": 200,
       "expected": 200,
-      "ms": 441,
+      "ms": 1297,
       "headers": {
         "x-clearing-price-cents": "1",
-        "x-clearing-receipt": "rcpt_d87376d4ece3e0ad72efe96e",
+        "x-clearing-receipt": "rcpt_81f53295f3354e2b4c022128",
         "x-clearing-remaining-budget-cents": "4",
-        "x-clearing-signature": "UOktDqwvm2VTM3ukcRTzc5wB7tzquyYgr9YKRGY6hmOL8BtYEhfFCNNtOYKbrI0lRBZAMuH9WDa1i0QMk6YTDA"
+        "x-clearing-signature": "5h8m6XjoXAw9jRLC8XkZei8X3htbRcT94lnQlLBYY7u3nT9ZL20avlFpR3RMNwWBRtb6vSpK_hJQEEM68HMKDA"
       },
       "body": {
-        "result": "{\"as_of\":\"2026-10-20T16:51:46.160Z\",\"country\":\"IE\",\"vatNumber\":\"6388047V\",\"valid\":true,\"checkedAt\":\"2026-10-20T16:51:46.140Z\",\"name\":\"GOOGLE IRELAND LIMITED\",\"address\":\"3RD FLOOR, GORDON HOUSE, BARROW STREET, DUBLIN 4\",\"notice\":\"A valid result means the number is registered for VAT in that member state, as the member state's own register reports it on the date shown. It does not say the business i",
+        "result": "{\"as_of\":\"2026-10-20T18:02:02.325Z\",\"country\":\"IE\",\"vatNumber\":\"6388047V\",\"valid\":true,\"checkedAt\":\"2026-10-20T18:02:02.309Z\",\"name\":\"GOOGLE IRELAND LIMITED\",\"address\":\"3RD FLOOR, GORDON HOUSE, BARROW STREET, DUBLIN 4\",\"notice\":\"A valid result means the number is registered for VAT in that member state, as the member state's own register reports it on the date shown. It does not say the business i",
         "receipt": {
-          "receipt_id": "rcpt_d87376d4ece3e0ad72efe96e",
-          "payload": "{\"v\":\"cd-receipt-v4\",\"receipt_id\":\"rcpt_d87376d4ece3e0ad72efe96e\",\"audit_log_id\":\"aud_d87376d4ece3e0ad72efe96e\",\"org_id\":\"org_ca80be30b32d8274\",\"key_id\":\"key_79c1c6cf192e3913\",\"tool\":\"check_vat_number\",\"upstream\":\"openkrill\",\"protocol\":\"http\",\"outcome\":\"success\",\"http_status\":200,\"amount_mc\":1000,\"cost_mc\":500,\"currency\":\"USD\",\"params_sha256\":\"220587e5ea0f963384363a612dcb15366d57f0b541a9ade913a56c85f4564c5e\",\"result_sha256\":\"54c6cf7a4415bfca611391e2b8d04401f9e630063ed7dced39c0adb9e85c7b8e\",\"issued_at\":1792518358167}",
-          "signature": "UOktDqwvm2VTM3ukcRTzc5wB7tzquyYgr9YKRGY6hmOL8BtYEhfFCNNtOYKbrI0lRBZAMuH9WDa1i0QMk6YTDA",
+          "receipt_id": "rcpt_81f53295f3354e2b4c022128",
+          "payload": "{\"v\":\"cd-receipt-v4\",\"receipt_id\":\"rcpt_81f53295f3354e2b4c022128\",\"audit_log_id\":\"aud_81f53295f3354e2b4c022128\",\"org_id\":\"org_0b1bf6cd407af618\",\"key_id\":\"key_8df453105acd2eff\",\"tool\":\"check_vat_number\",\"upstream\":\"openkrill\",\"protocol\":\"http\",\"outcome\":\"success\",\"http_status\":200,\"amount_mc\":1000,\"cost_mc\":500,\"currency\":\"USD\",\"params_sha256\":\"220587e5ea0f963384363a612dcb15366d57f0b541a9ade913a56c85f4564c5e\",\"result_sha256\":\"01e1c5024de20f2fedb76e53420181982860cd6430bdd4b37ec038a2f0c2942a\",\"issued_at\":1792519999367}",
+          "signature": "5h8m6XjoXAw9jRLC8XkZei8X3htbRcT94lnQlLBYY7u3nT9ZL20avlFpR3RMNwWBRtb6vSpK_hJQEEM68HMKDA",
           "alg": "Ed25519",
           "key_fingerprint": "0a076341b06e39ac",
           "public_key_url": "/.well-known/receipt-signing-key.json",
           "unsigned_view": {
             "v": "cd-receipt-v4",
-            "receipt_id": "rcpt_d87376d4ece3e0ad72efe96e",
-            "audit_log_id": "aud_d87376d4ece3e0ad72efe96e",
-            "org_id": "org_ca80be30b32d8274",
-            "key_id": "key_79c1c6cf192e3913",
+            "receipt_id": "rcpt_81f53295f3354e2b4c022128",
+            "audit_log_id": "aud_81f53295f3354e2b4c022128",
+            "org_id": "org_0b1bf6cd407af618",
+            "key_id": "key_8df453105acd2eff",
             "tool": "check_vat_number",
             "upstream": "openkrill",
             "protocol": "http",
@@ -568,12 +568,12 @@
             "cost_mc": 500,
             "currency": "USD",
             "params_sha256": "220587e5ea0f963384363a612dcb15366d57f0b541a9ade913a56c85f4564c5e",
-            "result_sha256": "54c6cf7a4415bfca611391e2b8d04401f9e630063ed7dced39c0adb9e85c7b8e",
-            "issued_at": 1792518358167
+            "result_sha256": "01e1c5024de20f2fedb76e53420181982860cd6430bdd4b37ec038a2f0c2942a",
+            "issued_at": 1792519999367
           }
         },
         "balance": {
-          "key_id": "key_79c1c6cf192e3913",
+          "key_id": "key_8df453105acd2eff",
           "budget_period": "none",
           "resets_at": null,
           "budget_cents": 5,
@@ -588,10 +588,10 @@
       "pass": true,
       "status": 200,
       "expected": 200,
-      "ms": 105,
+      "ms": 89,
       "headers": {},
       "body": {
-        "key_id": "key_79c1c6cf192e3913",
+        "key_id": "key_8df453105acd2eff",
         "status": "revoked"
       }
     },
@@ -600,13 +600,13 @@
       "pass": true,
       "status": 403,
       "expected": 403,
-      "ms": 110,
+      "ms": 129,
       "headers": {},
       "body": {
         "error": {
           "code": "key_revoked",
           "message": "Agent key has been revoked",
-          "key_id": "key_79c1c6cf192e3913"
+          "key_id": "key_8df453105acd2eff"
         }
       }
     },
@@ -615,7 +615,7 @@
       "pass": true,
       "status": 200,
       "expected": 200,
-      "ms": 93,
+      "ms": 106,
       "headers": {},
       "body": {
         "jsonrpc": "2.0",
@@ -628,7 +628,7 @@
       "pass": true,
       "status": 200,
       "expected": 200,
-      "ms": 130,
+      "ms": 140,
       "headers": {},
       "body": {
         "jsonrpc": "2.0",
@@ -641,12 +641,12 @@
       "pass": true,
       "status": 200,
       "expected": 200,
-      "ms": 146,
+      "ms": 105,
       "headers": {},
       "body": {
         "jsonrpc": "2.0",
         "id": 3,
-        "result": "{\"content\":[{\"type\":\"text\",\"text\":\"{\\\"key_id\\\":\\\"key_7535552450074794\\\",\\\"budget_period\\\":\\\"none\\\",\\\"resets_at\\\":null,\\\"budget_cents\\\":5,\\\"spent_cents\\\":0,\\\"remaining_cents\\\":5,\\\"remaining_usd\\\":\\\"$0.05000\\\",\\\"name\\\":\\\"e2e-5c\\\",\\\"allowlist\\\":[\\\"eu_duty_estimate\\\"]}\"}],\"structuredContent\":{\"key_id\":\"key_7535552450074794\",\"budget_period\":\"none\",\"resets_at\":null,\"budget_cents\":5,\"spent_cents\":0,\"rema"
+        "result": "{\"content\":[{\"type\":\"text\",\"text\":\"{\\\"key_id\\\":\\\"key_61657af451218590\\\",\\\"budget_period\\\":\\\"none\\\",\\\"resets_at\\\":null,\\\"budget_cents\\\":5,\\\"spent_cents\\\":0,\\\"remaining_cents\\\":5,\\\"remaining_usd\\\":\\\"$0.05000\\\",\\\"name\\\":\\\"e2e-5c\\\",\\\"allowlist\\\":[\\\"eu_duty_estimate\\\"]}\"}],\"structuredContent\":{\"key_id\":\"key_61657af451218590\",\"budget_period\":\"none\",\"resets_at\":null,\"budget_cents\":5,\"spent_cents\":0,\"rema"
       }
     },
     {
@@ -654,7 +654,7 @@
       "pass": true,
       "status": 200,
       "expected": 200,
-      "ms": 1051,
+      "ms": 758,
       "headers": {},
       "body": {
         "jsonrpc": "2.0",
@@ -677,12 +677,12 @@
       "pass": true,
       "status": 200,
       "expected": 200,
-      "ms": 130,
+      "ms": 109,
       "headers": {},
       "body": {
         "jsonrpc": "2.0",
         "id": 5,
-        "result": "{\"content\":[{\"type\":\"text\",\"text\":\"{\\\"receipt\\\":{\\\"receipt_id\\\":\\\"rcpt_4f9b3694d0cc04a11c60e522\\\",\\\"payload\\\":\\\"{\\\\\\\"v\\\\\\\":\\\\\\\"cd-receipt-v4\\\\\\\",\\\\\\\"receipt_id\\\\\\\":\\\\\\\"rcpt_4f9b3694d0cc04a11c60e522\\\\\\\",\\\\\\\"audit_log_id\\\\\\\":\\\\\\\"aud_4f9b3694d0cc04a11c60e522\\\\\\\",\\\\\\\"org_id\\\\\\\":\\\\\\\"org_f63be289991e9dfc\\\\\\\",\\\\\\\"key_id\\\\\\\":\\\\\\\"key_7535552450074794\\\\\\\",\\\\\\\"tool\\\\\\\":\\\\\\\"eu_duty_estimate\\\\\\\",\\\\\\\"upstream\\\\"
+        "result": "{\"content\":[{\"type\":\"text\",\"text\":\"{\\\"receipt\\\":{\\\"receipt_id\\\":\\\"rcpt_be2550ee14a5cfe07cb5eb8a\\\",\\\"payload\\\":\\\"{\\\\\\\"v\\\\\\\":\\\\\\\"cd-receipt-v4\\\\\\\",\\\\\\\"receipt_id\\\\\\\":\\\\\\\"rcpt_be2550ee14a5cfe07cb5eb8a\\\\\\\",\\\\\\\"audit_log_id\\\\\\\":\\\\\\\"aud_be2550ee14a5cfe07cb5eb8a\\\\\\\",\\\\\\\"org_id\\\\\\\":\\\\\\\"org_5d8a596d8ade2de7\\\\\\\",\\\\\\\"key_id\\\\\\\":\\\\\\\"key_61657af451218590\\\\\\\",\\\\\\\"tool\\\\\\\":\\\\\\\"eu_duty_estimate\\\\\\\",\\\\\\\"upstream\\\\"
       }
     },
     {
@@ -690,7 +690,7 @@
       "pass": true,
       "status": 400,
       "expected": 400,
-      "ms": 140,
+      "ms": 144,
       "headers": {},
       "body": {
         "error": {
@@ -707,11 +707,104 @@
       "pass": true,
       "status": 200,
       "expected": 200,
-      "ms": 123,
+      "ms": 120,
       "headers": {},
       "body": {
         "period": "2026-10",
-        "key_id": "key_6b10f2e58e6f065d",
+        "key_id": "key_9d7a3d5ccfe54edd",
+        "budget_period": "none",
+        "resets_at": null,
+        "budget_cents": 2,
+        "spent_cents": 0,
+        "remaining_cents": 2,
+        "remaining_usd": "$0.02000",
+        "items": [],
+        "total_calls": 0
+      }
+    },
+    {
+      "step": "gate: an upstream refusal (isError invalid_input) gets 400 and is refunded",
+      "pass": true,
+      "status": 400,
+      "expected": 400,
+      "ms": 382,
+      "headers": {
+        "x-clearing-price-cents": "0",
+        "x-clearing-receipt": "rcpt_62ff526f1e2ecada265bb1e0",
+        "x-clearing-remaining-budget-cents": "2",
+        "x-clearing-signature": "B48ZzT_UAsNYcrdYo3SdmslaStUGJt3apgX4lKp7NY07opt05_IAZEAmn09jUTssYpTzvN1oLuFI6brabJCkBg"
+      },
+      "body": {
+        "error": {
+          "code": "invalid_arguments",
+          "message": "Upstream openkrill rejected the arguments: invalid_input: ZZ is not a VIES country. Use a two-letter EU member state code (Greece is EL), or XI for Northern Ireland. Parameters: country (string, required); vatNumber (string, required); requesterCountry (string); requesterVatNumber (string).. Nothing was charged; fix the arguments before calling again.",
+          "tool_name": "check_vat_number",
+          "upstream_status": 400,
+          "receipt_id": "rcpt_62ff526f1e2ecada265bb1e0"
+        },
+        "receipt": {
+          "receipt_id": "rcpt_62ff526f1e2ecada265bb1e0",
+          "payload": "{\"v\":\"cd-receipt-v4\",\"receipt_id\":\"rcpt_62ff526f1e2ecada265bb1e0\",\"audit_log_id\":\"aud_62ff526f1e2ecada265bb1e0\",\"org_id\":\"org_5d8a596d8ade2de7\",\"key_id\":\"key_9d7a3d5ccfe54edd\",\"tool\":\"check_vat_number\",\"upstream\":\"openkrill\",\"protocol\":\"http\",\"outcome\":\"upstream_error\",\"http_status\":400,\"amount_mc\":0,\"cost_mc\":0,\"currency\":\"USD\",\"params_sha256\":\"d88df138b5cc1c4c8fb4a60c606b604924757c92f396834a98045e575aa5a429\",\"result_sha256\":null,\"issued_at\":1792520001953}",
+          "signature": "B48ZzT_UAsNYcrdYo3SdmslaStUGJt3apgX4lKp7NY07opt05_IAZEAmn09jUTssYpTzvN1oLuFI6brabJCkBg",
+          "alg": "Ed25519",
+          "key_fingerprint": "0a076341b06e39ac",
+          "public_key_url": "/.well-known/receipt-signing-key.json",
+          "unsigned_view": {
+            "v": "cd-receipt-v4",
+            "receipt_id": "rcpt_62ff526f1e2ecada265bb1e0",
+            "audit_log_id": "aud_62ff526f1e2ecada265bb1e0",
+            "org_id": "org_5d8a596d8ade2de7",
+            "key_id": "key_9d7a3d5ccfe54edd",
+            "tool": "check_vat_number",
+            "upstream": "openkrill",
+            "protocol": "http",
+            "outcome": "upstream_error",
+            "http_status": 400,
+            "amount_mc": 0,
+            "cost_mc": 0,
+            "currency": "USD",
+            "params_sha256": "d88df138b5cc1c4c8fb4a60c606b604924757c92f396834a98045e575aa5a429",
+            "result_sha256": null,
+            "issued_at": 1792520001953
+          }
+        },
+        "balance": {
+          "key_id": "key_9d7a3d5ccfe54edd",
+          "budget_period": "none",
+          "resets_at": null,
+          "budget_cents": 2,
+          "spent_cents": 0,
+          "remaining_cents": 2,
+          "remaining_usd": "$0.02000"
+        }
+      }
+    },
+    {
+      "step": "gate: after 20 failed calls in one hour the next call gets 429",
+      "pass": true,
+      "status": 429,
+      "expected": 429,
+      "ms": 100,
+      "headers": {},
+      "body": {
+        "error": {
+          "code": "too_many_failed_calls",
+          "message": "This key made 20 failed upstream calls this UTC hour. Failed calls are free, so they are capped; fix the arguments and try next hour.",
+          "key_id": "key_9d7a3d5ccfe54edd",
+          "limit": 20
+        }
+      }
+    },
+    {
+      "step": "gate: the 21 refused calls spent nothing",
+      "pass": true,
+      "status": 200,
+      "expected": 200,
+      "ms": 168,
+      "headers": {},
+      "body": {
+        "period": "2026-10",
+        "key_id": "key_9d7a3d5ccfe54edd",
         "budget_period": "none",
         "resets_at": null,
         "budget_cents": 2,
@@ -727,10 +820,10 @@
       "pass": true,
       "status": 201,
       "expected": 201,
-      "ms": 1059,
+      "ms": 1069,
       "headers": {},
       "body": {
-        "name": "e2e_topics_mvgz5eul",
+        "name": "e2e_topics_mvh04tk6",
         "upstream": "mcp.deepwiki.com",
         "custom": true,
         "mcp_url": "https://mcp.deepwiki.com/mcp",
@@ -746,29 +839,29 @@
       "pass": true,
       "status": 200,
       "expected": 200,
-      "ms": 4076,
+      "ms": 1274,
       "headers": {
         "x-clearing-price-cents": "0.5",
-        "x-clearing-receipt": "rcpt_ba9dd00ef487ba04dbe60ad9",
+        "x-clearing-receipt": "rcpt_664e09bd08c8f72b0619eb89",
         "x-clearing-remaining-budget-cents": "0.5",
-        "x-clearing-signature": "DDDHrvBJMv8_LIEwEN2SP7TcP7d84LdXWxXoKZZRq2Tq1zKaAX2Fu9k_xs1Lwa8szE8hlKdj-eFGLnjMM7tCDg"
+        "x-clearing-signature": "z59ULHmK7PuOkljXps_-Oz4uIfKoih_m3y4gAj0Tgc6g0aIPrCe58NbC-FOIb2--RMXbNrD-Fwg_gY4ZpO58Bw"
       },
       "body": {
         "result": "{\"result\":\"Available pages for cloudflare/workerd:\\n\\n- 1 Overview\\n  - 1.1 Key Concepts\\n  - 1.2 Getting Started and Samples\\n- 2 Core Runtime Architecture\\n  - 2.1 Server and Service Layer\\n  - 2.2 Worker and Isolate\\n  - 2.3 IoContext and Request Lifecycle\\n  - 2.4 Cross-Thread Object Ownership\\n  - 2.5 Module Registry\\n- 3 JavaScript Integration (JSG)\\n  - 3.1 Resource Types and Bindings\\n  - ",
         "receipt": {
-          "receipt_id": "rcpt_ba9dd00ef487ba04dbe60ad9",
-          "payload": "{\"v\":\"cd-receipt-v4\",\"receipt_id\":\"rcpt_ba9dd00ef487ba04dbe60ad9\",\"audit_log_id\":\"aud_ba9dd00ef487ba04dbe60ad9\",\"org_id\":\"org_ca80be30b32d8274\",\"key_id\":\"key_117e64c9485edd41\",\"tool\":\"e2e_topics_mvgz5eul\",\"upstream\":\"mcp.deepwiki.com\",\"protocol\":\"http\",\"outcome\":\"success\",\"http_status\":200,\"amount_mc\":500,\"cost_mc\":0,\"currency\":\"USD\",\"params_sha256\":\"1e0877204ee251fa0a6f539b6069ed68e3379969a6ebe5faef848e4a4e564693\",\"result_sha256\":\"48b6b6d47be019bce2833d2d16dbcd2cc01dcc9132989647199c89dda531da68\",\"issued_at\":1792518365634}",
-          "signature": "DDDHrvBJMv8_LIEwEN2SP7TcP7d84LdXWxXoKZZRq2Tq1zKaAX2Fu9k_xs1Lwa8szE8hlKdj-eFGLnjMM7tCDg",
+          "receipt_id": "rcpt_664e09bd08c8f72b0619eb89",
+          "payload": "{\"v\":\"cd-receipt-v4\",\"receipt_id\":\"rcpt_664e09bd08c8f72b0619eb89\",\"audit_log_id\":\"aud_664e09bd08c8f72b0619eb89\",\"org_id\":\"org_0b1bf6cd407af618\",\"key_id\":\"key_206e7ed7ffedd57d\",\"tool\":\"e2e_topics_mvh04tk6\",\"upstream\":\"mcp.deepwiki.com\",\"protocol\":\"http\",\"outcome\":\"success\",\"http_status\":200,\"amount_mc\":500,\"cost_mc\":0,\"currency\":\"USD\",\"params_sha256\":\"1e0877204ee251fa0a6f539b6069ed68e3379969a6ebe5faef848e4a4e564693\",\"result_sha256\":\"48b6b6d47be019bce2833d2d16dbcd2cc01dcc9132989647199c89dda531da68\",\"issued_at\":1792520014839}",
+          "signature": "z59ULHmK7PuOkljXps_-Oz4uIfKoih_m3y4gAj0Tgc6g0aIPrCe58NbC-FOIb2--RMXbNrD-Fwg_gY4ZpO58Bw",
           "alg": "Ed25519",
           "key_fingerprint": "0a076341b06e39ac",
           "public_key_url": "/.well-known/receipt-signing-key.json",
           "unsigned_view": {
             "v": "cd-receipt-v4",
-            "receipt_id": "rcpt_ba9dd00ef487ba04dbe60ad9",
-            "audit_log_id": "aud_ba9dd00ef487ba04dbe60ad9",
-            "org_id": "org_ca80be30b32d8274",
-            "key_id": "key_117e64c9485edd41",
-            "tool": "e2e_topics_mvgz5eul",
+            "receipt_id": "rcpt_664e09bd08c8f72b0619eb89",
+            "audit_log_id": "aud_664e09bd08c8f72b0619eb89",
+            "org_id": "org_0b1bf6cd407af618",
+            "key_id": "key_206e7ed7ffedd57d",
+            "tool": "e2e_topics_mvh04tk6",
             "upstream": "mcp.deepwiki.com",
             "protocol": "http",
             "outcome": "success",
@@ -778,11 +871,11 @@
             "currency": "USD",
             "params_sha256": "1e0877204ee251fa0a6f539b6069ed68e3379969a6ebe5faef848e4a4e564693",
             "result_sha256": "48b6b6d47be019bce2833d2d16dbcd2cc01dcc9132989647199c89dda531da68",
-            "issued_at": 1792518365634
+            "issued_at": 1792520014839
           }
         },
         "balance": {
-          "key_id": "key_117e64c9485edd41",
+          "key_id": "key_206e7ed7ffedd57d",
           "budget_period": "daily",
           "resets_at": "2026-10-21T00:00:00.000Z",
           "budget_cents": 1,
@@ -807,42 +900,42 @@
       "pass": true,
       "status": 402,
       "expected": 402,
-      "ms": 192,
+      "ms": 137,
       "headers": {
         "x-clearing-price-cents": "0",
-        "x-clearing-receipt": "rcpt_e68cf10abe01657d03a162cd",
+        "x-clearing-receipt": "rcpt_c8725b7e2f5a83c3ad83f9f4",
         "x-clearing-remaining-budget-cents": "0",
-        "x-clearing-signature": "lB3JWhJZHU2nbREyxdWQoXhuHpTcsl53zK7QsGgQugm-sMc46y_tt_j2mGuWSb357ftH4RK78A_PG5EwuDc7Dw"
+        "x-clearing-signature": "oJl-VXhjJMqXEvw4lC_khD4OlcmK7m9Nf3vHn3YL3W_KzECPfS5CI5WATHgbKmqpsCkP0VT9ZAeFLKxvh0odCQ"
       },
       "body": {
         "error": {
           "code": "budget_exceeded",
-          "message": "Budget exceeded: $0.00000 left, e2e_topics_mvgz5eul costs $0.00500. Stop calling paid tools with this key.",
-          "key_id": "key_117e64c9485edd41",
+          "message": "Budget exceeded: $0.00000 left, e2e_topics_mvh04tk6 costs $0.00500. Stop calling paid tools with this key.",
+          "key_id": "key_206e7ed7ffedd57d",
           "budget_period": "daily",
           "resets_at": "2026-10-21T00:00:00.000Z",
           "budget_cents": 1,
           "spent_cents": 1,
           "remaining_cents": 0,
           "remaining_usd": "$0.00000",
-          "tool_name": "e2e_topics_mvgz5eul",
+          "tool_name": "e2e_topics_mvh04tk6",
           "call_price_cents": 0.5,
-          "receipt_id": "rcpt_e68cf10abe01657d03a162cd"
+          "receipt_id": "rcpt_c8725b7e2f5a83c3ad83f9f4"
         },
         "receipt": {
-          "receipt_id": "rcpt_e68cf10abe01657d03a162cd",
-          "payload": "{\"v\":\"cd-receipt-v4\",\"receipt_id\":\"rcpt_e68cf10abe01657d03a162cd\",\"audit_log_id\":\"aud_e68cf10abe01657d03a162cd\",\"org_id\":\"org_ca80be30b32d8274\",\"key_id\":\"key_117e64c9485edd41\",\"tool\":\"e2e_topics_mvgz5eul\",\"upstream\":\"mcp.deepwiki.com\",\"protocol\":\"http\",\"outcome\":\"refused_budget\",\"http_status\":402,\"amount_mc\":0,\"cost_mc\":0,\"currency\":\"USD\",\"params_sha256\":\"1e0877204ee251fa0a6f539b6069ed68e3379969a6ebe5faef848e4a4e564693\",\"result_sha256\":null,\"issued_at\":1792518369737}",
-          "signature": "lB3JWhJZHU2nbREyxdWQoXhuHpTcsl53zK7QsGgQugm-sMc46y_tt_j2mGuWSb357ftH4RK78A_PG5EwuDc7Dw",
+          "receipt_id": "rcpt_c8725b7e2f5a83c3ad83f9f4",
+          "payload": "{\"v\":\"cd-receipt-v4\",\"receipt_id\":\"rcpt_c8725b7e2f5a83c3ad83f9f4\",\"audit_log_id\":\"aud_c8725b7e2f5a83c3ad83f9f4\",\"org_id\":\"org_0b1bf6cd407af618\",\"key_id\":\"key_206e7ed7ffedd57d\",\"tool\":\"e2e_topics_mvh04tk6\",\"upstream\":\"mcp.deepwiki.com\",\"protocol\":\"http\",\"outcome\":\"refused_budget\",\"http_status\":402,\"amount_mc\":0,\"cost_mc\":0,\"currency\":\"USD\",\"params_sha256\":\"1e0877204ee251fa0a6f539b6069ed68e3379969a6ebe5faef848e4a4e564693\",\"result_sha256\":null,\"issued_at\":1792520018224}",
+          "signature": "oJl-VXhjJMqXEvw4lC_khD4OlcmK7m9Nf3vHn3YL3W_KzECPfS5CI5WATHgbKmqpsCkP0VT9ZAeFLKxvh0odCQ",
           "alg": "Ed25519",
           "key_fingerprint": "0a076341b06e39ac",
           "public_key_url": "/.well-known/receipt-signing-key.json",
           "unsigned_view": {
             "v": "cd-receipt-v4",
-            "receipt_id": "rcpt_e68cf10abe01657d03a162cd",
-            "audit_log_id": "aud_e68cf10abe01657d03a162cd",
-            "org_id": "org_ca80be30b32d8274",
-            "key_id": "key_117e64c9485edd41",
-            "tool": "e2e_topics_mvgz5eul",
+            "receipt_id": "rcpt_c8725b7e2f5a83c3ad83f9f4",
+            "audit_log_id": "aud_c8725b7e2f5a83c3ad83f9f4",
+            "org_id": "org_0b1bf6cd407af618",
+            "key_id": "key_206e7ed7ffedd57d",
+            "tool": "e2e_topics_mvh04tk6",
             "upstream": "mcp.deepwiki.com",
             "protocol": "http",
             "outcome": "refused_budget",
@@ -852,11 +945,11 @@
             "currency": "USD",
             "params_sha256": "1e0877204ee251fa0a6f539b6069ed68e3379969a6ebe5faef848e4a4e564693",
             "result_sha256": null,
-            "issued_at": 1792518369737
+            "issued_at": 1792520018224
           }
         },
         "balance": {
-          "key_id": "key_117e64c9485edd41",
+          "key_id": "key_206e7ed7ffedd57d",
           "budget_period": "daily",
           "resets_at": "2026-10-21T00:00:00.000Z",
           "budget_cents": 1,
@@ -871,10 +964,10 @@
       "pass": true,
       "status": 200,
       "expected": 200,
-      "ms": 262,
+      "ms": 303,
       "headers": {},
       "body": {
-        "name": "e2e_topics_mvgz5eul",
+        "name": "e2e_topics_mvh04tk6",
         "status": "disabled"
       }
     },
@@ -883,12 +976,12 @@
       "pass": true,
       "status": 404,
       "expected": 404,
-      "ms": 128,
+      "ms": 111,
       "headers": {},
       "body": {
         "error": {
           "code": "unknown_tool",
-          "message": "Unknown tool 'e2e_topics_mvgz5eul'. List tools at GET /v1/tools or MCP tools/list."
+          "message": "Unknown tool 'e2e_topics_mvh04tk6'. List tools at GET /v1/tools or MCP tools/list."
         }
       }
     },
@@ -897,10 +990,10 @@
       "pass": true,
       "status": 201,
       "expected": 201,
-      "ms": 734,
+      "ms": 1218,
       "headers": {},
       "body": {
-        "name": "e2e_sealed_mvgz5mee",
+        "name": "e2e_sealed_mvh04ydl",
         "upstream": "mcp.deepwiki.com",
         "custom": true,
         "mcp_url": "https://mcp.deepwiki.com/mcp",
@@ -916,7 +1009,7 @@
       "pass": true,
       "status": 200,
       "expected": 200,
-      "ms": 101,
+      "ms": 156,
       "headers": {},
       "body": {
         "tools": [
@@ -977,7 +1070,7 @@
             "margin_cents": 1
           },
           {
-            "name": "e2e_sealed_mvgz5mee",
+            "name": "e2e_sealed_mvh04ydl",
             "upstream": "mcp.deepwiki.com",
             "custom": true,
             "mcp_url": "https://mcp.deepwiki.com/mcp",
@@ -995,29 +1088,29 @@
       "pass": true,
       "status": 200,
       "expected": 200,
-      "ms": 10029,
+      "ms": 4610,
       "headers": {
         "x-clearing-price-cents": "0.5",
-        "x-clearing-receipt": "rcpt_08adcb81cf9d216e17bb6d61",
+        "x-clearing-receipt": "rcpt_7096b8bf50701514e82f4797",
         "x-clearing-remaining-budget-cents": "0.5",
-        "x-clearing-signature": "Lz9ute7w0U-rC8yg9H9Z7GZGvxI_g4ul3vdVoY2fW-dJ0hx2yyArTfR2Cd_LcTpnjmOfbd0yGaDFlH0T-02kCg"
+        "x-clearing-signature": "mAi8rjbv8ugMP4q8arBW1XQBR3SMseqXA8-ivoIQUlOT-mp6-BV05aNNsmByajAQOErExHdeQFbNMhdgQUL0Bg"
       },
       "body": {
         "result": "{\"result\":\"Available pages for cloudflare/workerd:\\n\\n- 1 Overview\\n  - 1.1 Key Concepts\\n  - 1.2 Getting Started and Samples\\n- 2 Core Runtime Architecture\\n  - 2.1 Server and Service Layer\\n  - 2.2 Worker and Isolate\\n  - 2.3 IoContext and Request Lifecycle\\n  - 2.4 Cross-Thread Object Ownership\\n  - 2.5 Module Registry\\n- 3 JavaScript Integration (JSG)\\n  - 3.1 Resource Types and Bindings\\n  - ",
         "receipt": {
-          "receipt_id": "rcpt_08adcb81cf9d216e17bb6d61",
-          "payload": "{\"v\":\"cd-receipt-v4\",\"receipt_id\":\"rcpt_08adcb81cf9d216e17bb6d61\",\"audit_log_id\":\"aud_08adcb81cf9d216e17bb6d61\",\"org_id\":\"org_ca80be30b32d8274\",\"key_id\":\"key_dbf2466184e2e6f2\",\"tool\":\"e2e_sealed_mvgz5mee\",\"upstream\":\"mcp.deepwiki.com\",\"protocol\":\"http\",\"outcome\":\"success\",\"http_status\":200,\"amount_mc\":500,\"cost_mc\":0,\"currency\":\"USD\",\"params_sha256\":\"1e0877204ee251fa0a6f539b6069ed68e3379969a6ebe5faef848e4a4e564693\",\"result_sha256\":\"48b6b6d47be019bce2833d2d16dbcd2cc01dcc9132989647199c89dda531da68\",\"issued_at\":1792518381156}",
-          "signature": "Lz9ute7w0U-rC8yg9H9Z7GZGvxI_g4ul3vdVoY2fW-dJ0hx2yyArTfR2Cd_LcTpnjmOfbd0yGaDFlH0T-02kCg",
+          "receipt_id": "rcpt_7096b8bf50701514e82f4797",
+          "payload": "{\"v\":\"cd-receipt-v4\",\"receipt_id\":\"rcpt_7096b8bf50701514e82f4797\",\"audit_log_id\":\"aud_7096b8bf50701514e82f4797\",\"org_id\":\"org_0b1bf6cd407af618\",\"key_id\":\"key_f327557898d7c58c\",\"tool\":\"e2e_sealed_mvh04ydl\",\"upstream\":\"mcp.deepwiki.com\",\"protocol\":\"http\",\"outcome\":\"success\",\"http_status\":200,\"amount_mc\":500,\"cost_mc\":0,\"currency\":\"USD\",\"params_sha256\":\"1e0877204ee251fa0a6f539b6069ed68e3379969a6ebe5faef848e4a4e564693\",\"result_sha256\":\"48b6b6d47be019bce2833d2d16dbcd2cc01dcc9132989647199c89dda531da68\",\"issued_at\":1792520024550}",
+          "signature": "mAi8rjbv8ugMP4q8arBW1XQBR3SMseqXA8-ivoIQUlOT-mp6-BV05aNNsmByajAQOErExHdeQFbNMhdgQUL0Bg",
           "alg": "Ed25519",
           "key_fingerprint": "0a076341b06e39ac",
           "public_key_url": "/.well-known/receipt-signing-key.json",
           "unsigned_view": {
             "v": "cd-receipt-v4",
-            "receipt_id": "rcpt_08adcb81cf9d216e17bb6d61",
-            "audit_log_id": "aud_08adcb81cf9d216e17bb6d61",
-            "org_id": "org_ca80be30b32d8274",
-            "key_id": "key_dbf2466184e2e6f2",
-            "tool": "e2e_sealed_mvgz5mee",
+            "receipt_id": "rcpt_7096b8bf50701514e82f4797",
+            "audit_log_id": "aud_7096b8bf50701514e82f4797",
+            "org_id": "org_0b1bf6cd407af618",
+            "key_id": "key_f327557898d7c58c",
+            "tool": "e2e_sealed_mvh04ydl",
             "upstream": "mcp.deepwiki.com",
             "protocol": "http",
             "outcome": "success",
@@ -1027,11 +1120,11 @@
             "currency": "USD",
             "params_sha256": "1e0877204ee251fa0a6f539b6069ed68e3379969a6ebe5faef848e4a4e564693",
             "result_sha256": "48b6b6d47be019bce2833d2d16dbcd2cc01dcc9132989647199c89dda531da68",
-            "issued_at": 1792518381156
+            "issued_at": 1792520024550
           }
         },
         "balance": {
-          "key_id": "key_dbf2466184e2e6f2",
+          "key_id": "key_f327557898d7c58c",
           "budget_period": "none",
           "resets_at": null,
           "budget_cents": 1,
@@ -1046,10 +1139,10 @@
       "pass": true,
       "status": 200,
       "expected": 200,
-      "ms": 267,
+      "ms": 322,
       "headers": {},
       "body": {
-        "name": "e2e_sealed_mvgz5mee",
+        "name": "e2e_sealed_mvh04ydl",
         "status": "disabled"
       }
     },
@@ -1058,18 +1151,18 @@
       "pass": true,
       "status": 200,
       "expected": 200,
-      "ms": 90,
+      "ms": 116,
       "headers": {},
       "body": {
-        "organizations": 22,
-        "active_keys": 47,
-        "allocated_budget_cents": 207,
-        "metered_spend_cents": 70.55,
-        "upstream_cost_cents": 30.28,
-        "clearing_margin_cents": 40.27,
-        "signed_receipts": 166,
-        "refusals": 79,
-        "upstream_errors": 8
+        "organizations": 29,
+        "active_keys": 58,
+        "allocated_budget_cents": 232,
+        "metered_spend_cents": 81.05,
+        "upstream_cost_cents": 34.78,
+        "clearing_margin_cents": 47.27,
+        "signed_receipts": 221,
+        "refusals": 99,
+        "upstream_errors": 30
       }
     }
   ]

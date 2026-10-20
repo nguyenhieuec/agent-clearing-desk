@@ -18,9 +18,10 @@ It uses no stock footage, no stock music and no third-party clips.
 - **Operator console:** the deployed desk's console, captured in a headless browser after it connected with the operator token.
   The token field shows only dots; the token itself never appears on screen.
   The key with the daily budget is the one the live end-to-end run made.
-- **Price list with an added tool:** a capture of the same console build from a test run, with a DeepWiki tool added through the Add a tool form.
-  The live end-to-end run adds, uses and disables such a tool on the deployed desk.
-- **Terminal scenes:** real output of the live end-to-end run, and of `scripts/verify-receipt.mjs` on a real receipt from the deployed desk and on a copy with one changed amount, set in a terminal frame.
+- **Price list with added tools:** `screenshots/06-add-mcp-tool-1440.png`, a capture of the same console build from a local run, not from the deployed desk.
+  It shows a DeepWiki tool added through the Add a tool form, and a second one with a sealed credential header.
+  The live end-to-end run adds, uses and disables both kinds of tool on the deployed desk.
+- **Terminal scenes:** real output, set in a terminal frame: `jq` over the round 5 live end-to-end output (`e2e-live-output.json`), and `scripts/verify-receipt.mjs` on a real receipt from the deployed desk and on a copy with one changed amount.
 - **Architecture diagram:** `architecture.svg`, made for this submission.
 - **Comparison table:** the same table as the README, from the public source of LiteLLM and Helicone, checked on 2026-10-20.
 - **Fonts:** Inter and JetBrains Mono, both under the SIL Open Font License 1.1.

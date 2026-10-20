@@ -138,6 +138,23 @@ async function freeTrafficFlow(orgId) {
   steps.at(-1).pass &&= bad.body.error?.code === 'invalid_arguments' && bad.headers['x-clearing-receipt'] === undefined;
   const usage = check('gate: nothing was spent', await request('/v1/usage', { headers: asKey(key) }), 200);
   steps.at(-1).pass &&= usage.body.spent_cents === 0;
+  await failedCallCap(key);
+}
+
+/**
+ * The upstream itself refuses "ZZ" (its MCP answer has isError and an invalid_input code): the
+ * agent gets 400 and pays nothing. Those refusals still count as failed calls, so after 20 in
+ * one UTC hour the next call gets 429 before the upstream is called.
+ */
+async function failedCallCap(key) {
+  const zz = { country: 'ZZ', vatNumber: '123456' };
+  const refused = check('gate: an upstream refusal (isError invalid_input) gets 400 and is refunded', await run(key, 'check_vat_number', zz), 400);
+  steps.at(-1).pass &&= refused.body.error?.code === 'invalid_arguments' && refused.headers['x-clearing-remaining-budget-cents'] === '2';
+  for (let i = 1; i < 20; i++) await run(key, 'check_vat_number', zz);
+  const capped = check('gate: after 20 failed calls in one hour the next call gets 429', await run(key, 'check_vat_number', zz), 429);
+  steps.at(-1).pass &&= capped.body.error?.code === 'too_many_failed_calls';
+  const usage = check('gate: the 21 refused calls spent nothing', await request('/v1/usage', { headers: asKey(key) }), 200);
+  steps.at(-1).pass &&= usage.body.spent_cents === 0;
 }
 
 /** The full offline check a third party runs: signature, result hash, input hash, readable copy. */

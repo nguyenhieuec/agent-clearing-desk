@@ -46,6 +46,9 @@ async function receiptTool(id: RpcId, key: AgentKey, args: Record<string, unknow
   return toolResult(id, { receipt: receiptView(receipt), signature_valid: signatureValid });
 }
 
+/** MCP 2025-06-18 dropped JSON-RPC batches; older clients may still send small ones, never an unbounded list. */
+const MAX_BATCH = 10;
+
 function outcomeResult(id: RpcId, outcome: ClearingOutcome) {
   if (outcome.kind === 'rejected') return toolResult(id, outcome.error, true);
   // The whole signed receipt rides along, so an MCP client can verify with no second call.
@@ -113,6 +116,12 @@ export async function handleMcpRequest(request: Request, env: Env): Promise<Resp
     });
   }
   const batch = Array.isArray(body) ? (body as RpcRequest[]) : [body as RpcRequest];
+  if (batch.length > MAX_BATCH) {
+    return new Response(JSON.stringify(rpcError(null, -32600, `A batch may hold at most ${MAX_BATCH} requests`)), {
+      status: 400,
+      headers: { 'content-type': 'application/json' },
+    });
+  }
   const answers: unknown[] = [];
   for (const rpc of batch) {
     const out = await handleRpc(rpc, request, env);

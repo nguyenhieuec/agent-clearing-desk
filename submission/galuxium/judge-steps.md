@@ -87,7 +87,7 @@ Add the desk as a Streamable HTTP MCP server with the sandbox key in a header:
 ```
 
 `tools/list` shows 9 tools: 7 built-in governed tools, each with its price per successful call in the description, plus the free `check_agent_balance` and `get_call_receipt`.
-A `tools/call` result carries the answer and the whole signed receipt in `structuredContent.clearing.receipt`; save it and run `node scripts/verify-receipt.mjs mcp-result.json public-key.json --input args.json`.
+A `tools/call` result carries the answer and the whole signed receipt in `structuredContent.clearing.receipt`; save the whole JSON-RPC response or only its `result`, and run `node scripts/verify-receipt.mjs mcp-result.json public-key.json --input args.json`.
 `get_call_receipt` returns a stored receipt with `signature_valid` checked on the desk.
 Tools an operator adds from another MCP server at run time appear in the same list.
 
@@ -95,7 +95,7 @@ Tools an operator adds from another MCP server at run time appear in the same li
 
 ```bash
 npm install
-npm test          # 39 tests on real SQLite with the production migrations
+npm test          # 51 tests on real SQLite with the production migrations
 npm run typecheck
 node scripts/run-e2e.mjs out.json   # live sandbox flow; the operator flow needs ADMIN_SECRET
 ```

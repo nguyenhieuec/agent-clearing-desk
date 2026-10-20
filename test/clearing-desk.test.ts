@@ -5,6 +5,7 @@ import { verifyReceiptSignature } from '../src/crypto.ts';
 import { createSqliteD1, rawSqlite } from './sqlite-d1.ts';
 // @ts-expect-error plain .mjs script without types
 import { checkResponse } from '../scripts/verify-receipt.mjs';
+import { sealSecret } from '../src/sealed-secret.ts';
 
 const ADMIN = 'test-admin-secret';
 const ORIGIN = 'https://desk.test';
@@ -15,8 +16,8 @@ async function makeSigningKey(): Promise<string> {
 }
 
 let env: Env;
-let upstreamCalls: { url: string; body: unknown; headers: Record<string, string> }[];
-let upstreamMode: 'ok' | 'fail' | 'hang' | 'reject';
+let upstreamCalls: { url: string; method: string; body: unknown; headers: Record<string, string> }[];
+let upstreamMode: 'ok' | 'fail' | 'hang' | 'reject' | 'tool-refusal' | 'tool-failure' | 'sse-progress' | 'sse-no-answer';
 /** When set, the next upstream tool call waits for this before it fails with 500. */
 let upstreamGate: Promise<void> | undefined;
 
@@ -27,18 +28,36 @@ const PAID_TOKEN = 'Bearer upstream-secret-token';
 const CUSTOM_SCHEMA = { type: 'object', properties: { q: { type: 'string' } }, required: ['q'] };
 
 /** The MCP lifecycle and tools/list of the fake custom servers; undefined for a tool call. */
-function customServer(url: string, body: { method: string }, h: Record<string, string>): Response | undefined {
+function customServer(url: string, body: { method: string } | null, h: Record<string, string>): Response | undefined {
   if (url === PAID_MCP && h.authorization !== PAID_TOKEN) return new Response('unauthorized', { status: 401 });
   const session = url === PAID_MCP ? 'sess-paid' : 'sess-free';
+  if (body === null) return new Response(null, { status: h['mcp-session-id'] === session ? 200 : 404 });
   if (body.method === 'initialize') {
     return Response.json({ jsonrpc: '2.0', id: 0, result: { protocolVersion: '2025-06-18' } }, { headers: { 'mcp-session-id': session } });
   }
   if (h['mcp-session-id'] !== session) return new Response('no session', { status: 400 });
   if (body.method === 'notifications/initialized') return new Response(null, { status: 202 });
   if (body.method === 'tools/list') {
-    return Response.json({ jsonrpc: '2.0', id: 1, result: { tools: [{ name: 'search', description: 'Search', inputSchema: CUSTOM_SCHEMA }] } });
+    const tools = [
+      { name: 'search', description: 'Search', inputSchema: CUSTOM_SCHEMA },
+      { name: 'odd', description: 'A schema with a pattern that is not valid in Unicode mode', inputSchema: { type: 'object', properties: { id: { type: 'string', pattern: '\\:' } } } },
+    ];
+    return Response.json({ jsonrpc: '2.0', id: 1, result: { tools } });
   }
   return undefined;
+}
+
+/** An SSE answer as Streamable HTTP servers send it: a progress notification first, then (maybe) the answer. */
+function sseAnswer(withAnswer: boolean): Response {
+  const progress = { jsonrpc: '2.0', method: 'notifications/progress', params: { progressToken: 1, progress: 0.5 } };
+  const answer = { jsonrpc: '2.0', id: 1, result: { content: [{ type: 'text', text: '{"hits":3}' }] } };
+  const events = [progress, ...(withAnswer ? [answer] : [])].map(m => `event: message\ndata: ${JSON.stringify(m)}\n\n`).join('');
+  return new Response(events, { headers: { 'content-type': 'text/event-stream' } });
+}
+
+/** A refused tool call exactly as the OpenKrill MCP plugins send it: a result with isError and a coded text. */
+function toolError(text: string): Response {
+  return Response.json({ jsonrpc: '2.0', id: 1, result: { isError: true, content: [{ type: 'text', text }] } });
 }
 
 /** The only fake in this suite: the upstream tool servers. The desk, SQL and crypto are real. */
@@ -46,7 +65,7 @@ async function fakeUpstream(input: RequestInfo | URL, init?: RequestInit): Promi
   const url = String(input);
   const body = init?.body ? JSON.parse(String(init.body)) : null;
   const headers = { ...(init?.headers as Record<string, string>) };
-  upstreamCalls.push({ url, body, headers });
+  upstreamCalls.push({ url, method: init?.method ?? 'GET', body, headers });
   const lifecycle = url === CUSTOM_MCP || url === PAID_MCP ? customServer(url, body, headers) : undefined;
   if (lifecycle) return lifecycle;
   if (upstreamGate) {
@@ -57,6 +76,9 @@ async function fakeUpstream(input: RequestInfo | URL, init?: RequestInit): Promi
   }
   if (upstreamMode === 'fail') return Promise.resolve(new Response('boom', { status: 500 }));
   if (upstreamMode === 'reject') return Promise.resolve(new Response('vatNumber is not valid', { status: 422 }));
+  if (upstreamMode === 'tool-refusal') return toolError('invalid_input: ZZ is not a VIES country. Use a two-letter EU member state code.');
+  if (upstreamMode === 'tool-failure') return toolError('upstream_unavailable: VIES did not answer.');
+  if (upstreamMode === 'sse-progress' || upstreamMode === 'sse-no-answer') return sseAnswer(upstreamMode === 'sse-progress');
   if (upstreamMode === 'hang') {
     return new Promise((_, reject) => init?.signal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError'))));
   }
@@ -90,7 +112,7 @@ async function newKey(orgId: string, budgetCents: number, allowlist: string[] = 
 }
 
 /** Tool calls that reached an upstream, without the MCP lifecycle requests. */
-const toolCalls = () => upstreamCalls.filter(c => !['initialize', 'notifications/initialized', 'tools/list'].includes((c.body as { method?: string })?.method ?? ''));
+const toolCalls = () => upstreamCalls.filter(c => (c.body as { method?: string } | null)?.method === 'tools/call');
 
 const DUTY_ARGS = {
   lines: [{ description: 'cotton t-shirt', origin: 'CN', qty: 3, unit_value_eur: 25 }],
@@ -497,5 +519,128 @@ describe('paid MCP servers added at run time', () => {
     const res = await post(paid);
     expect(res.status).toBe(400);
     expect(await res.text()).toContain('UPSTREAM_SECRET_KEY');
+  });
+});
+
+describe('real upstream shapes and gate edges', () => {
+  const tool = { name: 'web_search', mcpUrl: CUSTOM_MCP, upstreamTool: 'search', costCents: 0.5, priceCents: 1, timeoutMs: 1000 };
+  const runVat = (key: string, args: unknown) => call('/v1/tools/check_vat_number/run', { headers: { 'x-api-key': key }, json: args });
+
+  it('answers 400 when an MCP upstream refuses the input with isError and an invalid_input code', async () => {
+    const { key } = await newKey(await newOrg(), 10);
+    upstreamMode = 'tool-refusal';
+    const res = await runVat(key, { country: 'ZZ', vatNumber: '123456' });
+    expect(res.status).toBe(400);
+    expect(res.headers.get('x-clearing-remaining-budget-cents')).toBe('10');
+    const body = (await res.json()) as { error: { code: string; message: string } };
+    expect(body.error.code).toBe('invalid_arguments');
+    expect(body.error.message).toContain('ZZ is not a VIES country');
+  });
+
+  it('keeps 502 for an MCP tool error that does not blame the input', async () => {
+    const { key } = await newKey(await newOrg(), 10);
+    upstreamMode = 'tool-failure';
+    expect((await runVat(key, { country: 'IE', vatNumber: '6388047V' })).status).toBe(502);
+  });
+
+  it('refuses unknown fields named like Object.prototype members', async () => {
+    const { key } = await newKey(await newOrg(), 10);
+    const res = await runVat(key, { country: 'IE', vatNumber: '6388047V', constructor: 1, toString: 'x' });
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as { error: { problems: string[] } }).error.problems).toEqual([
+      'arguments.constructor is not an allowed argument',
+      'arguments.toString is not an allowed argument',
+    ]);
+    expect(upstreamCalls).toHaveLength(0);
+  });
+
+  it('charges only for the SSE message that answers the request, never for a progress notification', async () => {
+    await call('/api/admin/tools', { headers: admin, json: tool });
+    const { key } = await newKey(await newOrg(), 10);
+    const run = () => call('/v1/tools/web_search/run', { headers: { 'x-api-key': key }, json: { q: 'budgets' } });
+    upstreamMode = 'sse-progress';
+    const ok = await run();
+    expect(ok.status).toBe(200);
+    expect(((await ok.json()) as { result: unknown }).result).toEqual({ hits: 3 });
+    upstreamMode = 'sse-no-answer';
+    const empty = await run();
+    expect(empty.status).toBe(502);
+    expect(empty.headers.get('x-clearing-remaining-budget-cents')).toBe('9');
+  });
+
+  it('ends the MCP session after each call', async () => {
+    await call('/api/admin/tools', { headers: admin, json: tool });
+    const { key } = await newKey(await newOrg(), 10);
+    await call('/v1/tools/web_search/run', { headers: { 'x-api-key': key }, json: { q: 'budgets' } });
+    expect(upstreamCalls.at(-1)).toMatchObject({ url: CUSTOM_MCP, method: 'DELETE', headers: { 'mcp-session-id': 'sess-free' } });
+  });
+
+  it('refuses to add a tool whose schema pattern the desk cannot check', async () => {
+    const res = await call('/api/admin/tools', { headers: admin, json: { ...tool, name: 'odd_tool', upstreamTool: 'odd' } });
+    expect(res.status).toBe(400);
+    expect(await res.text()).toContain('pattern');
+  });
+
+  it('caps sandbox keys per client IP, so one script cannot use up the day for every judge', async () => {
+    env.DEMO_KEYS_PER_IP = '2';
+    const mint = (ip: string) => call('/api/demo/keys', { method: 'POST', headers: { 'cf-connecting-ip': ip } });
+    expect((await mint('203.0.113.7')).status).toBe(201);
+    expect((await mint('203.0.113.7')).status).toBe(201);
+    expect((await mint('203.0.113.7')).status).toBe(429);
+    expect((await mint('198.51.100.9')).status).toBe(201);
+    const counters = rawSqlite(env.DB).prepare("SELECT name FROM desk_counters WHERE name LIKE 'sandbox_ip:%'").all() as { name: string }[];
+    expect(counters.map(c => c.name).join()).not.toContain('203.0.113.7');
+  });
+
+  it('refuses an MCP batch of more than 10 requests', async () => {
+    const { key } = await newKey(await newOrg(), 10);
+    const batch = Array.from({ length: 11 }, (_, i) => ({ jsonrpc: '2.0', id: i, method: 'ping' }));
+    expect((await call('/mcp', { headers: { 'x-api-key': key }, json: batch })).status).toBe(400);
+  });
+
+  it('does not count an upstream refusing the operator credential against the agent', async () => {
+    env.FAILED_CALLS_PER_HOUR = '1';
+    env.UPSTREAM_SECRET_KEY = Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString('base64');
+    const paid = { ...tool, name: 'paid_search', mcpUrl: PAID_MCP, authHeader: { name: 'authorization', value: PAID_TOKEN } };
+    expect((await call('/api/admin/tools', { headers: admin, json: paid })).status).toBe(201);
+    const revoked = await sealSecret(env.UPSTREAM_SECRET_KEY, 'paid_search', 'Bearer revoked');
+    rawSqlite(env.DB).prepare("UPDATE custom_tools SET auth_header_sealed = ? WHERE name = 'paid_search'").run(revoked);
+    const { key } = await newKey(await newOrg(), 10);
+    const run = () => call('/v1/tools/paid_search/run', { headers: { 'x-api-key': key }, json: { q: 'x' } });
+    const first = await run();
+    expect(first.status).not.toBe(200);
+    expect((await run()).status).toBe(first.status);
+    expect(first.headers.get('x-clearing-remaining-budget-cents')).toBe('10');
+  });
+});
+
+describe('verifier edges', () => {
+  async function liveDoc() {
+    const { key } = await newKey(await newOrg(), 10);
+    const rpc = await (await call('/mcp', {
+      headers: { 'x-api-key': key },
+      json: { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'eu_duty_estimate', arguments: DUTY_ARGS } },
+    })).json();
+    const pub = ((await (await call('/.well-known/receipt-signing-key.json')).json()) as { keys: unknown[] }).keys[0];
+    return { rpc: rpc as { result: { structuredContent: { clearing: { receipt: { payload: string } } } } }, pub };
+  }
+
+  it('reads a whole JSON-RPC response, not only its result', async () => {
+    const { rpc, pub } = await liveDoc();
+    expect(await checkResponse(rpc, pub, DUTY_ARGS)).toMatchObject({ valid: true, proves_answer: true });
+  });
+
+  it('never says a forged receipt proves the answer', async () => {
+    const { rpc, pub } = await liveDoc();
+    const receipt = rpc.result.structuredContent.clearing.receipt;
+    receipt.payload = receipt.payload.replace(/"amount_mc":\d+/, '"amount_mc":1');
+    const out = await checkResponse(rpc, pub);
+    expect(out.checks.signature).toBe(false);
+    expect(out.proves_answer).toBe(false);
+  });
+
+  it('gives a clear error for a file with no receipt', async () => {
+    const { pub } = await liveDoc();
+    await expect(checkResponse({ hello: 'world' }, pub)).rejects.toThrow(/no receipt found/);
   });
 });

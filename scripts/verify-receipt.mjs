@@ -59,13 +59,18 @@ function hasher(signed) {
 
 /** The receipt and the result, from a REST response, an MCP structuredContent, or a bare receipt. */
 function unwrap(doc) {
-  const sc = doc.structuredContent ?? doc;
+  // A whole JSON-RPC response ({jsonrpc, id, result}) holds the MCP result one level down.
+  const rpcResult = doc.jsonrpc && doc.result ? doc.result : doc;
+  const sc = rpcResult.structuredContent ?? rpcResult;
   return { receipt: sc.receipt ?? sc.clearing?.receipt ?? sc, hasResult: 'result' in sc, result: sc.result };
 }
 
 /** Every check that applies to this response; the receipt is valid only if all of them pass. */
 export async function checkResponse(doc, publicJwk, input) {
   const { receipt, hasResult, result } = unwrap(doc);
+  if (typeof receipt?.payload !== 'string') {
+    throw new Error('no receipt found: pass a REST response, an MCP tools/call result or response, or a receipt');
+  }
   const signed = JSON.parse(receipt.payload);
   const sha256 = hasher(signed);
   const checks = { signature: await verifyReceipt(receipt, publicJwk) };
@@ -74,7 +79,8 @@ export async function checkResponse(doc, publicJwk, input) {
   if (input !== undefined) checks.input_hash = signed.params_sha256 === sha256(input);
   if (receipt.unsigned_view) checks.unsigned_view = isDeepStrictEqual(receipt.unsigned_view, signed);
   const valid = Object.values(checks).every(c => c === true || typeof c === 'string');
-  return { valid, proves_answer: checks.result_hash === true, checks, signed };
+  // The answer is proven only by a receipt that is itself valid: a forged one proves nothing.
+  return { valid, proves_answer: valid && checks.result_hash === true, checks, signed };
 }
 
 async function loadPublicKey(file) {
@@ -104,4 +110,9 @@ async function main() {
   process.exit(valid ? 0 : 1);
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) await main();
+if (import.meta.url === `file://${process.argv[1]}`) {
+  await main().catch(err => {
+    console.error(`verify-receipt: ${err.message}`);
+    process.exit(2);
+  });
+}
