@@ -17,7 +17,7 @@ Deadline: 2026-10-31 17:00 IST (18:30 GMT+7).
 | --- | --- |
 | Working product on a public URL | https://agent-clearing-desk.nguyenhieuec.workers.dev |
 | Public source | https://github.com/nguyenhieuec/agent-clearing-desk (MIT) |
-| Pitch video, 2 to 5 minutes | https://youtu.be/67ObmB3BAAw (3:28), script in [video.md](./video.md) |
+| Pitch video, 2 to 5 minutes | https://youtu.be/aVK8SuRTMSU (3:49), script in [video.md](./video.md) |
 | Write-up | [README.md](./README.md) |
 | Screenshots | [screenshots/](./screenshots/) at 1440 px and 390 px |
 | Steps a judge can repeat | [judge-steps.md](./judge-steps.md) |

@@ -8,7 +8,7 @@ Every call is cleared before it runs and returns a receipt that anyone can verif
 - MCP endpoint: https://agent-clearing-desk.nguyenhieuec.workers.dev/mcp
 - Public signing key: https://agent-clearing-desk.nguyenhieuec.workers.dev/.well-known/receipt-signing-key.json
 - Source: https://github.com/nguyenhieuec/agent-clearing-desk
-- Pitch video (3:28): https://youtu.be/67ObmB3BAAw
+- Pitch video (3:49): https://youtu.be/aVK8SuRTMSU
 
 ## The problem
 
