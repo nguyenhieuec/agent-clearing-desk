@@ -280,8 +280,18 @@ export const SANDBOX_KEY = {
  * so one script cannot use up the daily cap for every judge, and no raw IP is stored.
  */
 async function sandboxClient(request: Request): Promise<string> {
-  const ip = request.headers.get('cf-connecting-ip') || 'unknown';
+  const ip = networkOf(request.headers.get('cf-connecting-ip') || 'unknown');
   return `sandbox_ip:${(await sha256Hex(`${ip}|${new Date().toISOString().slice(0, 10)}`)).slice(0, 24)}`;
+}
+
+/** One home or cloud host gets a whole IPv6 /64, so IPv6 clients are counted per /64, IPv4 per address. */
+export function networkOf(ip: string): string {
+  if (!ip.includes(':')) return ip;
+  const [head, tail = ''] = ip.toLowerCase().split('::');
+  const left = head ? head.split(':') : [];
+  const right = tail ? tail.split(':') : [];
+  const groups = ip.includes('::') ? [...left, ...Array(8 - left.length - right.length).fill('0'), ...right] : left;
+  return `${groups.slice(0, 4).map(g => g.replace(/^0+(?=.)/, '')).join(':')}::/64`;
 }
 
 /**

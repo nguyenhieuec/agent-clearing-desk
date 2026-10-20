@@ -23,8 +23,9 @@ No account is needed.
 ```bash
 DESK=https://agent-clearing-desk.nguyenhieuec.workers.dev
 
-# a sandbox key: 2 cents, eu_duty_estimate + check_vat_number, 60 minutes
-KEY=$(curl -s -X POST $DESK/api/demo/keys | node -pe 'JSON.parse(require("fs").readFileSync(0)).key')
+# a sandbox key: 2 cents, eu_duty_estimate + check_vat_number, 60 minutes.
+# One network can mint 5 sandbox keys per UTC day (the browser demo uses one per run); after that this prints the 429 message.
+KEY=$(curl -s -X POST $DESK/api/demo/keys | node -pe 'const b=JSON.parse(require("fs").readFileSync(0)); b.key ?? (console.error(b.error.message), process.exit(1))') && echo "$KEY"
 
 # cleared: 200, 1 cent, signed receipt in the body and the headers
 echo '{"lines":[{"description":"cotton t-shirt","origin":"CN","qty":3,"unit_value_eur":25}],"channel":"ioss"}' > args.json
@@ -39,7 +40,12 @@ curl -s -o /dev/null -w '%{http_code}\n' -X POST $DESK/v1/tools/get_app_reviews/
 curl -s -X POST $DESK/v1/tools/check_vat_number/run -H "x-api-key: $KEY" -H 'content-type: application/json' \
   -d '{"country":"IE","vatNumber":"1"}'
 
-# where the key stands
+# arguments the schema allows but the upstream refuses ("ZZ" is not an EU country):
+# the upstream answers with an MCP error result, the desk maps it to 400 and refunds the reservation
+curl -s -X POST $DESK/v1/tools/check_vat_number/run -H "x-api-key: $KEY" -H 'content-type: application/json' \
+  -d '{"country":"ZZ","vatNumber":"123456"}'
+
+# where the key stands: 1 cent spent, only the cleared call is charged
 curl -s $DESK/v1/usage -H "x-api-key: $KEY"
 
 # the admin API is closed without the operator token
@@ -84,6 +90,15 @@ Add the desk as a Streamable HTTP MCP server with the sandbox key in a header:
     }
   }
 }
+```
+
+Or with curl, using the same key (the desk is stateless, so no `initialize` is needed first):
+
+```bash
+curl -s -X POST $DESK/mcp -H "x-api-key: $KEY" -H 'content-type: application/json' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | node -pe 'JSON.parse(require("fs").readFileSync(0)).result.tools.map(t=>t.name).join("\n")'
+curl -s -X POST $DESK/mcp -H "x-api-key: $KEY" -H 'content-type: application/json' \
+  -d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"check_agent_balance","arguments":{}}}'
 ```
 
 `tools/list` shows 9 tools: 7 built-in governed tools, each with its price per successful call in the description, plus the free `check_agent_balance` and `get_call_receipt`.

@@ -89,7 +89,7 @@ The live e2e run adds a DeepWiki tool this way, clears calls on a daily key, pro
 
 - Operator: an admin API behind a bearer secret (`/api/admin/*`) creates organizations and keys, sets budgets, allowlists and per-key prices, rotates and revokes keys, and reads the audit log with upstream cost, price and margin per call.
 - Agent: can rotate its own key (`POST /v1/key/rotate`); the old secret stops at once, spend is kept.
-- Judge: `POST /api/demo/keys` gives anyone a sandbox key with a 2 cent budget, 2 allowed tools and a 60 minute life. Each sandbox key gets its own organization, so one judge cannot read another judge's receipts. The whole sandbox is capped at 100 keys per UTC day, and one network at 5 keys per day, by conditional SQL counters, so one script cannot drain the upstream account or use up the day for every judge. The per-network counter stores a SHA-256 of the IP and the day, never the IP itself.
+- Judge: `POST /api/demo/keys` gives anyone a sandbox key with a 2 cent budget, 2 allowed tools and a 60 minute life. Each sandbox key gets its own organization, so one judge cannot read another judge's receipts. The whole sandbox is capped at 100 keys per UTC day, and one network at 5 keys per day, by conditional SQL counters, so the public demo cannot drain the upstream account and one network cannot take more than 5 of the day's keys. IPv6 clients are counted per /64. The per-network counter stores a SHA-256 of the IP and the day, never the IP itself.
 
 ## Architecture
 

@@ -588,6 +588,10 @@ describe('real upstream shapes and gate edges', () => {
     expect((await mint('203.0.113.7')).status).toBe(201);
     expect((await mint('203.0.113.7')).status).toBe(429);
     expect((await mint('198.51.100.9')).status).toBe(201);
+    expect((await mint('2001:db8:1:2::a')).status).toBe(201);
+    expect((await mint('2001:db8:1:2:ffff::b')).status).toBe(201);
+    expect((await mint('2001:0db8:0001:0002:0:0:0:c')).status).toBe(429);
+    expect((await mint('2001:db8:1:3::a')).status).toBe(201);
     const counters = rawSqlite(env.DB).prepare("SELECT name FROM desk_counters WHERE name LIKE 'sandbox_ip:%'").all() as { name: string }[];
     expect(counters.map(c => c.name).join()).not.toContain('203.0.113.7');
   });
