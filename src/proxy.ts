@@ -117,7 +117,7 @@ async function handleGetReceiptById(receiptId: string, env: Env): Promise<Respon
       404
     );
   }
-  const signatureValid = await verifyReceipt(receipt);
+  const signatureValid = await verifyReceipt(receipt, env.RECEIPT_SIGNING_KEY);
   return jsonResponse({ receipt, signature_valid: signatureValid });
 }
 
@@ -175,6 +175,7 @@ async function handleRunTool(
   if (!isToolAllowed(key, toolName)) {
     const err = createToolNotAllowedError(key, toolName);
     await recordClearingTransaction(env.DB, {
+      signingKey: env.RECEIPT_SIGNING_KEY,
       key,
       toolName,
       protocol: 'http',
@@ -194,6 +195,7 @@ async function handleRunTool(
 
   if (!budgetCheck.allowed) {
     const { receipt } = await recordClearingTransaction(env.DB, {
+      signingKey: env.RECEIPT_SIGNING_KEY,
       key,
       toolName,
       protocol: 'http',
@@ -214,6 +216,7 @@ async function handleRunTool(
 
   const upstream = await executeUpstreamTool(env, toolName, args);
   const { auditLog, receipt } = await recordClearingTransaction(env.DB, {
+    signingKey: env.RECEIPT_SIGNING_KEY,
     key,
     toolName,
     protocol: 'http',

@@ -13,10 +13,10 @@ CREATE TABLE IF NOT EXISTS agent_keys (
   key_prefix TEXT NOT NULL,
   org_id TEXT NOT NULL REFERENCES organizations(id),
   name TEXT NOT NULL,
-  budget_cents INTEGER NOT NULL DEFAULT 0,
-  spent_cents INTEGER NOT NULL DEFAULT 0,
+  budget_cents REAL NOT NULL DEFAULT 0,
+  spent_cents REAL NOT NULL DEFAULT 0,
   allowlist TEXT NOT NULL DEFAULT '["*"]',
-  per_call_price_cents INTEGER NOT NULL DEFAULT 5,
+  per_call_price_cents REAL NOT NULL DEFAULT 5,
   tool_pricing_overrides TEXT NOT NULL DEFAULT '{}',
   status TEXT NOT NULL DEFAULT 'active',
   created_at INTEGER NOT NULL,
@@ -35,9 +35,9 @@ CREATE TABLE IF NOT EXISTS audit_logs (
   status TEXT NOT NULL,
   status_code INTEGER NOT NULL,
   params_summary TEXT,
-  cost_cents INTEGER NOT NULL DEFAULT 0,
-  price_cents INTEGER NOT NULL DEFAULT 0,
-  margin_cents INTEGER NOT NULL DEFAULT 0,
+  cost_cents REAL NOT NULL DEFAULT 0,
+  price_cents REAL NOT NULL DEFAULT 0,
+  margin_cents REAL NOT NULL DEFAULT 0,
   created_at INTEGER NOT NULL
 ) WITHOUT ROWID;
 
@@ -50,7 +50,7 @@ CREATE TABLE IF NOT EXISTS receipts (
   key_id TEXT NOT NULL,
   org_id TEXT NOT NULL,
   tool_name TEXT NOT NULL,
-  amount_cents INTEGER NOT NULL,
+  amount_cents REAL NOT NULL,
   currency TEXT NOT NULL DEFAULT 'USD',
   receipt_hash TEXT NOT NULL,
   issued_at INTEGER NOT NULL
@@ -64,6 +64,6 @@ CREATE TABLE IF NOT EXISTS usage_events (
   event TEXT NOT NULL,
   period TEXT NOT NULL,
   count INTEGER NOT NULL DEFAULT 0,
-  spent_cents INTEGER NOT NULL DEFAULT 0,
+  spent_cents REAL NOT NULL DEFAULT 0,
   PRIMARY KEY (key_id, event, period)
 ) WITHOUT ROWID;

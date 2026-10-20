@@ -4,6 +4,7 @@ export interface Env {
   OPENKRILL_API_KEY?: string;
   DEFAULT_PRICE_CENTS?: string;
   ADMIN_SECRET?: string;
+  RECEIPT_SIGNING_KEY: string;
 }
 
 export interface Organization {

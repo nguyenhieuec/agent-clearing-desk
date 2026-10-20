@@ -59,10 +59,7 @@ export function generateOrgId(): string {
   return `org_${randomHex(8)}`;
 }
 
-/**
- * Sign a receipt with a deterministic SHA-256 digest of its canonical fields.
- */
-export async function computeReceiptHash(fields: {
+export interface ReceiptFields {
   receiptId: string;
   auditLogId: string;
   keyId: string;
@@ -71,7 +68,26 @@ export async function computeReceiptHash(fields: {
   amountCents: number;
   currency: string;
   issuedAt: number;
-}): Promise<string> {
+}
+
+async function hmacSha256Hex(secret: string, text: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(text));
+  return Array.from(new Uint8Array(signature)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+/**
+ * Sign a receipt with HMAC-SHA256 over its canonical fields. The key lives only in
+ * the Worker secret, so a party holding the D1 rows alone cannot forge a receipt.
+ */
+export async function computeReceiptHash(signingKey: string, fields: ReceiptFields): Promise<string> {
   const canonical = [
     fields.receiptId,
     fields.auditLogId,
@@ -82,14 +98,14 @@ export async function computeReceiptHash(fields: {
     fields.currency,
     fields.issuedAt.toString(),
   ].join('|');
-  return sha256Hex(`desk-receipt:v1:${canonical}`);
+  return hmacSha256Hex(signingKey, `desk-receipt:v2:${canonical}`);
 }
 
 /**
- * Verify whether a receipt's hash matches its contents.
+ * Verify whether a receipt's signature matches its contents.
  */
-export async function verifyReceipt(receipt: Receipt): Promise<boolean> {
-  const expectedHash = await computeReceiptHash({
+export async function verifyReceipt(receipt: Receipt, signingKey: string): Promise<boolean> {
+  const expectedHash = await computeReceiptHash(signingKey, {
     receiptId: receipt.id,
     auditLogId: receipt.audit_log_id,
     keyId: receipt.key_id,

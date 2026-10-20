@@ -209,14 +209,14 @@ function buildBalanceResponse(id: RpcRequest['id'], agentKey: AgentKey) {
 async function buildReceiptResponse(
   id: RpcRequest['id'],
   args: Record<string, unknown>,
-  db: D1Database
+  env: Env
 ) {
   const receiptId = String(args.receipt_id || '');
-  const receipt = await getReceiptById(db, receiptId);
+  const receipt = await getReceiptById(env.DB, receiptId);
   if (!receipt) {
     return rpcTextError(id, `Receipt not found: ${receiptId}`);
   }
-  const valid = await verifyReceipt(receipt);
+  const valid = await verifyReceipt(receipt, env.RECEIPT_SIGNING_KEY);
   return rpcResult(id, {
     content: [
       {
@@ -240,6 +240,7 @@ async function executeMeteredMcpTool(
   if (!isToolAllowed(agentKey, toolName)) {
     const err = createToolNotAllowedError(agentKey, toolName);
     await recordClearingTransaction(env.DB, {
+      signingKey: env.RECEIPT_SIGNING_KEY,
       key: agentKey,
       toolName,
       protocol: 'mcp',
@@ -259,6 +260,7 @@ async function executeMeteredMcpTool(
 
   if (!budgetCheck.allowed) {
     const { receipt } = await recordClearingTransaction(env.DB, {
+      signingKey: env.RECEIPT_SIGNING_KEY,
       key: agentKey,
       toolName,
       protocol: 'mcp',
@@ -279,6 +281,7 @@ async function executeMeteredMcpTool(
 
   const upstream = await executeUpstreamTool(env, toolName, args);
   const { auditLog, receipt } = await recordClearingTransaction(env.DB, {
+    signingKey: env.RECEIPT_SIGNING_KEY,
     key: agentKey,
     toolName,
     protocol: 'mcp',
@@ -338,7 +341,7 @@ async function handleToolsCall(
   const args = normalizeMcpArgs(rawArgs);
 
   if (toolName === 'check_agent_balance') return buildBalanceResponse(id, agentKey);
-  if (toolName === 'get_call_receipt') return buildReceiptResponse(id, args, env.DB);
+  if (toolName === 'get_call_receipt') return buildReceiptResponse(id, args, env);
 
   return executeMeteredMcpTool(id, toolName, args, agentKey, env);
 }

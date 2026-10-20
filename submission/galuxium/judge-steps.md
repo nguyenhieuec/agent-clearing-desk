@@ -17,10 +17,10 @@ Judges can verify the entire governance, metering, policy-refusal, budget circui
 1. Open `https://agent-clearing-desk.nguyenhieuec.workers.dev/admin` in any browser.
 2. Click the fourth tab, **Agent Playground (5-Step Live Demo)**, or click the emerald **Run 5-Step Live Governance Demo** button in the top header.
 3. Watch the live execution log run five sequential governance checks against the production Cloudflare Worker and D1 database:
-   - `[Step 1/5]` Issues a fresh scoped agent key (`cd_live_...`) with a 10-cent hard spending cap and a 2-tool allowlist (`eu_duty_estimate`, `list_jobs`).
-   - `[Step 2/5]` Executes a live `eu_duty_estimate` call (`200 OK`), deducts 1 cent, and returns a signed SHA-256 receipt (`rcpt_...`).
-   - `[Step 3/5]` Attempts an unauthorized `get_app_reviews` call (`403 Forbidden - tool_not_allowed`) with `$0.00` charged.
-   - `[Step 4/5]` Exhausts the remaining budget and triggers the pre-flight circuit breaker (`402 Payment Required - budget_exceeded`), issuing a signed refusal receipt.
+   - `[Step 1/5]` Issues a fresh scoped agent key (`cd_live_...`) with a 2-cent hard spending cap (`perCallPriceCents: 1`) and a 2-tool allowlist (`eu_duty_estimate`, `check_vat_number`).
+   - `[Step 2/5]` Executes a live `eu_duty_estimate` call (`200 OK`), deducts 1 cent, and returns an HMAC-SHA256 signed receipt (`rcpt_...`).
+   - `[Step 3/5]` Attempts an unauthorized `find_tariff_codes` call (`403 Forbidden - tool_not_allowed`) with `$0.00` charged.
+   - `[Step 4/5]` Runs `check_vat_number` (`200 OK`, 2/2 cents used) and then triggers the pre-flight circuit breaker (`402 Payment Required - budget_exceeded`), issuing a signed refusal receipt.
    - `[Step 5/5]` Verifies the cryptographic signature (`signature_valid: true`) on `/v1/receipts/:id`.
 4. Switch to the **Audit & Receipt Ledger** tab and click any `rcpt_...` badge to inspect the raw JSON receipt and its SHA-256 signature verification.
 5. Switch to the **Monetization Blueprint** tab to inspect the wholesale cost, retail price, and clearing spread per tool call.

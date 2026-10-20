@@ -250,6 +250,7 @@ export async function recordClearingTransaction(
     costCents: number;
     priceCents: number;
     marginCents: number;
+    signingKey: string;
   }
 ): Promise<{ auditLog: AuditLog; receipt: Receipt }> {
   const now = Date.now();
@@ -259,7 +260,7 @@ export async function recordClearingTransaction(
   const isBillable = params.status === 'success';
   const billableAmount = isBillable ? params.priceCents : 0;
 
-  const receiptHash = await computeReceiptHash({
+  const receiptHash = await computeReceiptHash(params.signingKey, {
     receiptId,
     auditLogId: auditId,
     keyId: params.key.key_id,

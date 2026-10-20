@@ -138,7 +138,7 @@ export async function handleAdminRequest(
   const path = url.pathname;
   const method = request.method;
 
-  if (method === 'GET') {
+  if (method === 'GET' || method === 'HEAD') {
     const getRes = await handleAdminGetRoute(path, url, env);
     if (getRes) return getRes;
   }
