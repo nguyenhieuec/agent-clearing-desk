@@ -1,7 +1,7 @@
 # Agent Clearing Desk
 
 A spend gate for AI agents that call paid tools.
-Each agent key has a hard budget and a tool allowlist; every call is cleared before it runs and returns an Ed25519-signed receipt that anyone can verify offline.
+Each agent key has a hard budget (one-off, daily or monthly) and a tool allowlist; every call is cleared before it runs and returns an Ed25519-signed receipt that anyone can verify offline.
 
 - Live desk and judge sandbox: https://agent-clearing-desk.nguyenhieuec.workers.dev
 - MCP endpoint: `/mcp` (Streamable HTTP, JSON responses)
@@ -19,6 +19,7 @@ Each agent key has a hard budget and a tool allowlist; every call is cleared bef
 4. The upstream runs. On failure or timeout the reservation is refunded (502 or 504).
 5. On success the price is charged and the receipt signs the input hash, result hash, amount and upstream cost.
 
+Operators add a tool from any MCP server at run time with `POST /api/admin/tools`; the desk reads that server's `tools/list` for the schema.
 Money is integer millicents.
 The audit log and receipts are append-only.
 Receipts are visible only within their organization.
@@ -27,7 +28,7 @@ Receipts are visible only within their organization.
 
 ```bash
 npm install
-npm test                    # real SQLite (node:sqlite, Node 22.5+), production migration
+npm test                    # real SQLite (node:sqlite, Node 22.5+), production migrations
 npm run typecheck
 npm run db:migrate:local
 npm run dev
@@ -48,7 +49,7 @@ If a refresh token ever stops working, set a new seed and delete the `upstream_c
 Scripts:
 
 - `scripts/run-e2e.mjs`: live end-to-end run (operator flow with `ADMIN_SECRET`).
-- `scripts/verify-receipt.mjs`: offline receipt check with the public key.
+- `scripts/verify-receipt.mjs response.json [public-key.json] [--input args.json]`: offline check of the signature, the result hash, the input hash and the readable copy.
 - `scripts/sync-tool-schemas.mjs`: copies input schemas from the upstreams.
 
 ## License

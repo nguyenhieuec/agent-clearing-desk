@@ -6,10 +6,11 @@
  *   agent-vault run --env ADMIN_SECRET=galuxium-clearing-desk-admin -- node scripts/run-e2e.mjs out.json
  *
  * Without ADMIN_SECRET only the public sandbox flow runs (what a judge can repeat).
- * With it, the operator flow also runs: tenants, a concurrency burst, DeepWiki, rotation, revoke.
+ * With it, the operator flow also runs: tenants, a concurrency burst, DeepWiki, rotation, revoke,
+ * a daily budget, and a tool added at run time from a public MCP server.
  */
 import fs from 'node:fs';
-import { verifyReceipt } from './verify-receipt.mjs';
+import { checkResponse, verifyReceipt } from './verify-receipt.mjs';
 
 const BASE_URL = process.env.CLEARING_DESK_URL || 'https://agent-clearing-desk.nguyenhieuec.workers.dev';
 const ADMIN_SECRET = process.env.ADMIN_SECRET || '';
@@ -117,9 +118,31 @@ async function mcpFlow(key) {
   const rpc = (id, method, params) => request('/mcp', { headers: asKey(key), json: { jsonrpc: '2.0', id, method, params } });
   check('mcp: initialize', await rpc(1, 'initialize', { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'e2e', version: '1' } }), 200);
   const list = check('mcp: tools/list', await rpc(2, 'tools/list', {}), 200);
-  steps.at(-1).pass &&= list.body.result.tools.length === 9;
+  steps.at(-1).pass &&= list.body.result.tools.length >= 9;
   const bal = check('mcp: check_agent_balance', await rpc(3, 'tools/call', { name: 'check_agent_balance', arguments: {} }), 200);
   steps.at(-1).pass &&= typeof bal.body.result.structuredContent.remaining_cents === 'number';
+}
+
+/** The full offline check a third party runs: signature, result hash, input hash, readable copy. */
+function proveAnswer(label, res, args) {
+  return checkResponse(res.body, publicKey, args).then(({ valid, checks }) => {
+    steps.push({ step: label, pass: valid, checks });
+    console.log(`${valid ? 'PASS' : 'FAIL'} ${label}: ${JSON.stringify(checks)}`);
+  });
+}
+
+async function customToolFlow(orgId) {
+  const name = `e2e_topics_${Date.now().toString(36)}`;
+  const tool = { name, mcpUrl: 'https://mcp.deepwiki.com/mcp', upstreamTool: 'read_wiki_structure', costCents: 0, priceCents: 0.5 };
+  check('operator: add a tool from a public MCP server at run time', await admin('/api/admin/tools', tool), 201);
+  const { key } = (await admin('/api/admin/keys', { orgId, name: 'e2e-daily', budgetCents: 1, allowlist: [name], budgetPeriod: 'daily' })).body;
+  const args = { repoName: 'cloudflare/workerd' };
+  const first = check('operator: the added tool is cleared on a daily 1-cent key', await run(key, name, args), 200);
+  steps.at(-1).pass &&= first.body.balance?.budget_period === 'daily' && typeof first.body.balance?.resets_at === 'string';
+  await proveAnswer('operator: verifier proves the answer and the input of the added tool', first, args);
+  check('operator: second call fits, third is refused for today', (await run(key, name, args), await run(key, name, args)), 402);
+  check('operator: disable the added tool', await admin(`/api/admin/tools/${name}/disable`, {}), 200);
+  check('operator: a disabled tool is unknown', await run(key, name, args), 404);
 }
 
 async function operatorFlow() {
@@ -130,15 +153,20 @@ async function operatorFlow() {
   const b = await operatorKey(orgB, 5, ['eu_duty_estimate']);
 
   const wiki = await run(a.key, 'ask_repo_question', { repoName: 'cloudflare/workers-sdk', question: 'How does wrangler apply D1 migrations?' });
-  check('operator: ask_repo_question is cleared through the DeepWiki upstream', wiki, 200, wiki.body.receipt?.fields.upstream === 'deepwiki');
+  check('operator: ask_repo_question is cleared through the DeepWiki upstream', wiki, 200, (wiki.body.receipt ? JSON.parse(wiki.body.receipt.payload).upstream : null) === 'deepwiki');
   const receiptId = wiki.headers['x-clearing-receipt'];
   check('tenant: org A reads its receipt', await request(`/v1/receipts/${receiptId}`, { headers: asKey(a.key) }), 200);
   check('tenant: org B cannot read org A receipt', await request(`/v1/receipts/${receiptId}`, { headers: asKey(b.key) }), 404);
   await verifyAll('operator: DeepWiki receipt verifies offline', [wiki.body.receipt]);
+  await proveAnswer('operator: verifier proves the DeepWiki answer and input', wiki, {
+    repoName: 'cloudflare/workers-sdk',
+    question: 'How does wrangler apply D1 migrations?',
+  });
 
   await concurrencyBurst(orgA);
   await rotationAndRevoke(orgA);
   await mcpFlow(b.key);
+  await customToolFlow(orgA);
   check('operator: overview', await admin('/api/admin/overview'), 200);
 }
 

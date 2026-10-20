@@ -1,5 +1,7 @@
-import type { AgentKey, ClearingError, Env, Millicents, Protocol, Receipt } from './types.ts';
-import { findGovernedTool, inputSchemaFor, type GovernedTool } from './tools.ts';
+import type { AgentKey, BudgetPeriod, ClearingError, Env, Millicents, Protocol, Receipt } from './types.ts';
+import { currentSpend, periodResetsAt } from './budget-period.ts';
+import type { GovernedTool } from './tools.ts';
+import { findTool } from './tool-registry.ts';
 import { getAgentKeyById, getAgentKeyByRawKey, recordLedgerEntry, reserveBudget } from './db.ts';
 import { executeUpstreamTool } from './upstream.ts';
 import { sha256Hex } from './crypto.ts';
@@ -48,26 +50,36 @@ export function priceFor(key: AgentKey, tool: GovernedTool): Millicents {
   return overrides[tool.name] ?? tool.priceMc;
 }
 
-function missingRequired(toolName: string, args: Record<string, unknown>): string[] {
-  const required = inputSchemaFor(toolName)?.required ?? [];
+function missingRequired(tool: GovernedTool, args: Record<string, unknown>): string[] {
+  const required = tool.inputSchema?.required ?? [];
   return required.filter(field => args[field] === undefined || args[field] === null || args[field] === '');
 }
 
 /** Money fields every response carries, so an agent can always see where it stands. */
 export interface BalanceView {
   key_id: string;
+  budget_period: BudgetPeriod;
+  /** ISO time the budget starts again from 0, or null when it never resets. */
+  resets_at: string | null;
   budget_cents: number;
   spent_cents: number;
   remaining_cents: number;
   remaining_usd: string;
 }
 
-export function balanceView(key: Pick<AgentKey, 'key_id' | 'budget_mc' | 'spent_mc'>): BalanceView {
-  const remaining = Math.max(0, key.budget_mc - key.spent_mc);
+export function balanceView(
+  key: Pick<AgentKey, 'key_id' | 'budget_mc' | 'spent_mc' | 'budget_period' | 'period_key'>,
+  now = Date.now()
+): BalanceView {
+  const spent = currentSpend(key, now);
+  const remaining = Math.max(0, key.budget_mc - spent);
+  const resetsAt = periodResetsAt(key.budget_period, now);
   return {
     key_id: key.key_id,
+    budget_period: key.budget_period,
+    resets_at: resetsAt === null ? null : new Date(resetsAt).toISOString(),
     budget_cents: mcToCents(key.budget_mc),
-    spent_cents: mcToCents(key.spent_mc),
+    spent_cents: mcToCents(spent),
     remaining_cents: mcToCents(remaining),
     remaining_usd: mcToUsd(remaining),
   };
@@ -153,7 +165,7 @@ async function refuseBudget(ctx: CallContext, tool: GovernedTool, priceMc: Milli
  * upstream -> signed ledger entry (charge on success, refund on failure).
  */
 export async function clearToolCall(ctx: CallContext): Promise<ClearingOutcome> {
-  const tool = findGovernedTool(ctx.toolName);
+  const tool = await findTool(ctx.env, ctx.toolName);
   if (!tool) {
     return {
       kind: 'rejected',
@@ -161,7 +173,7 @@ export async function clearToolCall(ctx: CallContext): Promise<ClearingOutcome> 
       error: fail('unknown_tool', `Unknown tool '${ctx.toolName}'. List tools at GET /v1/tools or MCP tools/list.`),
     };
   }
-  const missing = missingRequired(tool.name, ctx.args);
+  const missing = missingRequired(tool, ctx.args);
   if (missing.length > 0) {
     return {
       kind: 'rejected',
@@ -215,7 +227,9 @@ export async function clearToolCall(ctx: CallContext): Promise<ClearingOutcome> 
       upstream_status: upstream.status,
       receipt_id: receipt.id,
     });
-    return { kind: 'upstream_error', httpStatus: 502, error, receipt, priceMc, balance };
+    // 504 tells the agent the upstream was too slow, 502 that it failed; both are refunded.
+    const httpStatus = upstream.status === 504 ? 504 : 502;
+    return { kind: 'upstream_error', httpStatus, error, receipt, priceMc, balance };
   }
 
   const receipt = await writeLedger(ctx, tool, {
@@ -231,7 +245,10 @@ export async function clearToolCall(ctx: CallContext): Promise<ClearingOutcome> 
   return { kind: 'success', httpStatus: 200, result: upstream.data, receipt, priceMc, balance };
 }
 
-/** Receipt as returned to agents and auditors: signed bytes, signature and the parsed view. */
+/**
+ * Receipt as returned to agents and auditors: the signed bytes and the signature.
+ * unsigned_view is a parsed copy for reading only; a verifier must trust payload alone.
+ */
 export function receiptView(receipt: Receipt) {
   return {
     receipt_id: receipt.id,
@@ -240,7 +257,7 @@ export function receiptView(receipt: Receipt) {
     alg: 'Ed25519',
     key_fingerprint: receipt.key_fingerprint,
     public_key_url: '/.well-known/receipt-signing-key.json',
-    fields: JSON.parse(receipt.payload) as Record<string, unknown>,
+    unsigned_view: JSON.parse(receipt.payload) as Record<string, unknown>,
   };
 }
 

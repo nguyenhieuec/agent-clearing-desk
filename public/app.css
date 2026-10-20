@@ -312,3 +312,7 @@ section[id], .step { scroll-margin-top: 128px; }
 @media (max-width: 640px) { section[id], .step { scroll-margin-top: 16px; } }
 .tbl td.clip { max-width: 320px; overflow: hidden; text-overflow: ellipsis; }
 @media (max-width: 640px) { main.wrap { padding-top: 24px; } }
+
+#tool-form { margin-top: 16px; }
+#tool-form > .hint { margin: 4px 0 16px; }
+#tool-form > .row { margin-top: 16px; }

@@ -1,9 +1,8 @@
 import type { AgentKey, AuditLog, Env } from './types.ts';
 import {
-  countKeysCreatedSince,
+  claimDailySlot,
   createAgentKey,
   createOrganization,
-  findOrganizationByName,
   getOrganization,
   getOverviewStats,
   listAgentKeys,
@@ -17,7 +16,10 @@ import {
 import { balanceView, parseAllowlist, receiptView } from './clearing.ts';
 import { timingSafeEqual } from './crypto.ts';
 import { centsToMc, mcToCents } from './money.ts';
-import { GOVERNED_TOOLS, findGovernedTool } from './tools.ts';
+import type { BudgetPeriod } from './types.ts';
+import { BUDGET_PERIODS } from './budget-period.ts';
+import type { GovernedTool } from './tools.ts';
+import { disableTool, findTool, listTools, registerMcpTool } from './tool-registry.ts';
 import { jsonResponse } from './proxy.ts';
 
 /** Public key view: never includes key_hash. */
@@ -69,21 +71,29 @@ interface KeyRequest {
   allowlist?: unknown;
   priceOverridesCents?: unknown;
   expiresInMinutes?: unknown;
+  budgetPeriod?: unknown;
 }
 
-function parseAllowlistInput(value: unknown): string[] | string {
+async function unknownTools(env: Env, names: string[]): Promise<string[]> {
+  const found = await Promise.all(names.map(n => (n === '*' ? true : findTool(env, n))));
+  return names.filter((_, i) => !found[i]);
+}
+
+async function parseAllowlistInput(env: Env, value: unknown): Promise<string[] | string> {
   if (!Array.isArray(value) || value.length === 0) return 'allowlist must be a non-empty array of tool names or ["*"]';
   const names = value.map(String);
-  const unknown = names.filter(n => n !== '*' && !findGovernedTool(n));
+  const unknown = await unknownTools(env, names);
   return unknown.length ? `unknown tool(s) in allowlist: ${unknown.join(', ')}` : names;
 }
 
-function parseOverrides(value: unknown): Record<string, number> | string {
+async function parseOverrides(env: Env, value: unknown): Promise<Record<string, number> | string> {
   if (value === undefined) return {};
   if (!value || typeof value !== 'object') return 'priceOverridesCents must be an object';
+  const entries = Object.entries(value as Record<string, unknown>);
+  const unknown = await unknownTools(env, entries.map(([tool]) => tool));
+  if (unknown.length) return `unknown tool in priceOverridesCents: ${unknown.join(', ')}`;
   const out: Record<string, number> = {};
-  for (const [tool, cents] of Object.entries(value as Record<string, unknown>)) {
-    if (!findGovernedTool(tool)) return `unknown tool in priceOverridesCents: ${tool}`;
+  for (const [tool, cents] of entries) {
     if (typeof cents !== 'number' || cents < 0) return `price for ${tool} must be a number >= 0`;
     out[tool] = centsToMc(cents);
   }
@@ -94,9 +104,11 @@ async function handleCreateKey(request: Request, env: Env): Promise<Response> {
   const body = (await request.json().catch(() => ({}))) as KeyRequest;
   if (typeof body.name !== 'string' || !body.name.trim()) return bad('name is required');
   if (typeof body.budgetCents !== 'number' || body.budgetCents < 0) return bad('budgetCents must be a number >= 0');
-  const allowlist = parseAllowlistInput(body.allowlist);
+  const period = (body.budgetPeriod ?? 'none') as BudgetPeriod;
+  if (!BUDGET_PERIODS.includes(period)) return bad('budgetPeriod must be none, daily or monthly');
+  const allowlist = await parseAllowlistInput(env, body.allowlist);
   if (typeof allowlist === 'string') return bad(allowlist);
-  const overrides = parseOverrides(body.priceOverridesCents);
+  const overrides = await parseOverrides(env, body.priceOverridesCents);
   if (typeof overrides === 'string') return bad(overrides);
   if (typeof body.orgId !== 'string' || !(await getOrganization(env.DB, body.orgId))) return bad('orgId must name an existing organization');
   const minutes = typeof body.expiresInMinutes === 'number' ? body.expiresInMinutes : null;
@@ -108,8 +120,56 @@ async function handleCreateKey(request: Request, env: Env): Promise<Response> {
     allowlist,
     priceOverrides: overrides,
     expiresAt: minutes ? Date.now() + minutes * 60_000 : null,
+    budgetPeriod: period,
   });
   return jsonResponse({ key: created.rawKey, ...keyView(created.key) }, 201);
+}
+
+function toolView(t: GovernedTool) {
+  return {
+    name: t.name,
+    upstream: t.target.upstream,
+    custom: t.custom,
+    ...(t.custom && t.target.kind === 'mcp' ? { mcp_url: t.target.url, upstream_tool: t.target.tool } : {}),
+    cost_cents: mcToCents(t.costMc),
+    price_cents: mcToCents(t.priceMc),
+    margin_cents: mcToCents(t.priceMc - t.costMc),
+  };
+}
+
+interface ToolRequest {
+  name?: unknown;
+  mcpUrl?: unknown;
+  upstreamTool?: unknown;
+  costCents?: unknown;
+  priceCents?: unknown;
+  timeoutMs?: unknown;
+  title?: unknown;
+  description?: unknown;
+}
+
+const isCents = (v: unknown): v is number => typeof v === 'number' && v >= 0;
+
+/** POST /api/admin/tools: put one tool of any Streamable HTTP MCP server behind the gate, no deploy. */
+async function handleCreateTool(request: Request, env: Env): Promise<Response> {
+  const body = (await request.json().catch(() => ({}))) as ToolRequest;
+  if (typeof body.name !== 'string' || typeof body.mcpUrl !== 'string' || typeof body.upstreamTool !== 'string') {
+    return bad('name, mcpUrl and upstreamTool are required');
+  }
+  if (!isCents(body.costCents) || !isCents(body.priceCents)) return bad('costCents and priceCents must be numbers >= 0');
+  const timeoutMs = typeof body.timeoutMs === 'number' ? body.timeoutMs : 15_000;
+  if (timeoutMs < 1000 || timeoutMs > 60_000) return bad('timeoutMs must be between 1000 and 60000');
+  const created = await registerMcpTool(env, {
+    name: body.name,
+    mcpUrl: body.mcpUrl,
+    upstreamTool: body.upstreamTool,
+    costMc: centsToMc(body.costCents),
+    priceMc: centsToMc(body.priceCents),
+    timeoutMs,
+    title: typeof body.title === 'string' ? body.title : undefined,
+    description: typeof body.description === 'string' ? body.description : undefined,
+  });
+  return typeof created === 'string' ? bad(created) : jsonResponse(toolView(created), 201);
 }
 
 async function handleCreateOrg(request: Request, env: Env): Promise<Response> {
@@ -161,17 +221,7 @@ async function handleAdminGet(path: string, url: URL, env: Env): Promise<Respons
   if (path === '/api/admin/receipts') {
     return jsonResponse({ receipts: (await listReceipts(env.DB, { keyId }, limit)).map(receiptView) });
   }
-  if (path === '/api/admin/tools') {
-    return jsonResponse({
-      tools: GOVERNED_TOOLS.map(t => ({
-        name: t.name,
-        upstream: t.target.upstream,
-        cost_cents: mcToCents(t.costMc),
-        price_cents: mcToCents(t.priceMc),
-        margin_cents: mcToCents(t.priceMc - t.costMc),
-      })),
-    });
-  }
+  if (path === '/api/admin/tools') return jsonResponse({ tools: (await listTools(env)).map(toolView) });
   return null;
 }
 
@@ -187,48 +237,49 @@ export async function handleAdminRequest(request: Request, env: Env, url: URL): 
   if (request.method === 'POST') {
     if (path === '/api/admin/orgs') return handleCreateOrg(request, env);
     if (path === '/api/admin/keys') return handleCreateKey(request, env);
+    if (path === '/api/admin/tools') return handleCreateTool(request, env);
+    const tool = path.match(/^\/api\/admin\/tools\/([a-z][a-z0-9_]{2,63})\/disable$/);
+    if (tool) {
+      return (await disableTool(env, tool[1]))
+        ? jsonResponse({ name: tool[1], status: 'disabled' })
+        : bad(`no active custom tool named ${tool[1]}`, 404);
+    }
     const m = path.match(/^\/api\/admin\/keys\/(key_[a-f0-9]{16})\/(rotate|revoke|budget)$/);
     if (m) return handleKeyAction(m[1], m[2], request, env);
   }
   return jsonResponse({ error: { code: 'not_found', message: `Route not found: ${request.method} ${path}` } }, 404);
 }
 
-export const SANDBOX_ORG_NAME = 'Public sandbox';
 export const SANDBOX_KEY = {
   budgetCents: 2,
   allowlist: ['eu_duty_estimate', 'check_vat_number'],
   ttlMinutes: 60,
 };
 
-function startOfUtcDay(now: number): number {
-  const d = new Date(now);
-  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
-}
-
 /**
  * POST /api/demo/keys: anyone may mint one sandbox key with a fixed 2 cent budget,
- * a fixed 2-tool allowlist and a 60 minute life. A global daily cap bounds what the
- * whole public sandbox can ever spend.
+ * a fixed 2-tool allowlist and a 60 minute life, in its own organization so no
+ * sandbox key can read another one's receipts. A global daily cap, taken in one
+ * conditional SQL statement, bounds what the whole public sandbox can ever spend.
  */
 export async function handleDemoKeyRequest(request: Request, env: Env): Promise<Response> {
   if (request.method !== 'POST') return bad('Use POST', 405);
-  const org =
-    (await findOrganizationByName(env.DB, SANDBOX_ORG_NAME)) ??
-    (await createOrganization(env.DB, SANDBOX_ORG_NAME, 'sandbox@agent-clearing-desk.invalid'));
   const limit = Number(env.DEMO_DAILY_KEY_LIMIT || 100);
-  const used = await countKeysCreatedSince(env.DB, org.id, startOfUtcDay(Date.now()));
-  if (used >= limit) {
+  const slot = await claimDailySlot(env.DB, 'sandbox_keys', limit, Date.now());
+  if (slot === null) {
     return jsonResponse(
       { error: { code: 'rate_limited', message: `The public sandbox minted its ${limit} keys for today (UTC). Try again tomorrow.` } },
       429
     );
   }
+  const stamp = new Date().toISOString().slice(11, 19);
+  const org = await createOrganization(env.DB, `Sandbox ${stamp}`, 'sandbox@agent-clearing-desk.invalid');
   const created = await createAgentKey(env.DB, {
     orgId: org.id,
-    name: `sandbox-${new Date().toISOString().slice(11, 19)}`,
+    name: `sandbox-${stamp}`,
     budgetMc: centsToMc(SANDBOX_KEY.budgetCents),
     allowlist: SANDBOX_KEY.allowlist,
     expiresAt: Date.now() + SANDBOX_KEY.ttlMinutes * 60_000,
   });
-  return jsonResponse({ key: created.rawKey, ...keyView(created.key), sandbox_keys_left_today: limit - used - 1 }, 201);
+  return jsonResponse({ key: created.rawKey, ...keyView(created.key), sandbox_keys_left_today: limit - slot }, 201);
 }

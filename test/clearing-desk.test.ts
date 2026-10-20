@@ -3,6 +3,8 @@ import worker from '../src/index.ts';
 import type { Env } from '../src/types.ts';
 import { verifyReceiptSignature } from '../src/crypto.ts';
 import { createSqliteD1, rawSqlite } from './sqlite-d1.ts';
+// @ts-expect-error plain .mjs script without types
+import { checkResponse } from '../scripts/verify-receipt.mjs';
 
 const ADMIN = 'test-admin-secret';
 const ORIGIN = 'https://desk.test';
@@ -14,14 +16,23 @@ async function makeSigningKey(): Promise<string> {
 
 let env: Env;
 let upstreamCalls: { url: string; body: unknown }[];
-let upstreamMode: 'ok' | 'fail';
+let upstreamMode: 'ok' | 'fail' | 'hang';
+
+const CUSTOM_MCP = 'https://mcp.example.test/mcp';
+const CUSTOM_SCHEMA = { type: 'object', properties: { q: { type: 'string' } }, required: ['q'] };
 
 /** The only fake in this suite: the upstream tool servers. The desk, SQL and crypto are real. */
 function fakeUpstream(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   const url = String(input);
   const body = init?.body ? JSON.parse(String(init.body)) : null;
   upstreamCalls.push({ url, body });
+  if (url === CUSTOM_MCP && body.method === 'tools/list') {
+    return Promise.resolve(Response.json({ jsonrpc: '2.0', id: 1, result: { tools: [{ name: 'search', description: 'Search', inputSchema: CUSTOM_SCHEMA }] } }));
+  }
   if (upstreamMode === 'fail') return Promise.resolve(new Response('boom', { status: 500 }));
+  if (upstreamMode === 'hang') {
+    return new Promise((_, reject) => init?.signal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError'))));
+  }
   if (url.endsWith('/run')) return Promise.resolve(Response.json({ ok: true, echo: body }));
   const structuredContent = { tool: body.params.name, args: body.params.arguments };
   return Promise.resolve(Response.json({ jsonrpc: '2.0', id: 1, result: { content: [], structuredContent } }));
@@ -45,8 +56,8 @@ async function newOrg(name = 'Acme'): Promise<string> {
   return ((await res.json()) as { id: string }).id;
 }
 
-async function newKey(orgId: string, budgetCents: number, allowlist: string[] = ['*']) {
-  const res = await call('/api/admin/keys', { headers: admin, json: { orgId, name: 'agent', budgetCents, allowlist } });
+async function newKey(orgId: string, budgetCents: number, allowlist: string[] = ['*'], budgetPeriod?: string) {
+  const res = await call('/api/admin/keys', { headers: admin, json: { orgId, name: 'agent', budgetCents, allowlist, budgetPeriod } });
   expect(res.status).toBe(201);
   return (await res.json()) as { key: string; key_id: string };
 }
@@ -103,9 +114,9 @@ describe('clearing a call', () => {
     expect(res.headers.get('x-clearing-remaining-budget-cents')).toBe('9');
     expect(upstreamCalls[0].body).toMatchObject({ params: { name: 'eu_duty_estimate', arguments: DUTY_ARGS } });
 
-    const body = (await res.json()) as { receipt: { payload: string; signature: string; fields: Record<string, unknown> } };
-    expect(body.receipt.fields).toMatchObject({ outcome: 'success', amount_mc: 1000, cost_mc: 500 });
-    expect(body.receipt.fields.result_sha256).toMatch(/^[a-f0-9]{64}$/);
+    const body = (await res.json()) as { receipt: { payload: string; signature: string; unsigned_view: Record<string, unknown> } };
+    expect(body.receipt.unsigned_view).toMatchObject({ outcome: 'success', amount_mc: 1000, cost_mc: 500 });
+    expect(body.receipt.unsigned_view.result_sha256).toMatch(/^[a-f0-9]{64}$/);
 
     const jwks = (await (await call('/.well-known/receipt-signing-key.json')).json()) as { keys: { x: string }[] };
     const pub = jwks.keys[0];
@@ -136,8 +147,8 @@ describe('clearing a call', () => {
     const res = await runDuty(key);
     expect(res.status).toBe(502);
     expect(res.headers.get('x-clearing-remaining-budget-cents')).toBe('10');
-    const body = (await res.json()) as { receipt: { fields: Record<string, unknown> } };
-    expect(body.receipt.fields).toMatchObject({ outcome: 'upstream_error', amount_mc: 0 });
+    const body = (await res.json()) as { receipt: { unsigned_view: Record<string, unknown> } };
+    expect(body.receipt.unsigned_view).toMatchObject({ outcome: 'upstream_error', amount_mc: 0 });
   });
 
   it('lets exactly one of 20 concurrent calls through on a key with room for one', async () => {
@@ -159,6 +170,103 @@ describe('clearing a call', () => {
     const rpc = (await res.json()) as { result: { isError?: boolean; structuredContent: { clearing: { price_cents: number } } } };
     expect(rpc.result.isError).toBeUndefined();
     expect(rpc.result.structuredContent.clearing.price_cents).toBe(1);
+  });
+});
+
+describe('offline verifier script', () => {
+  async function successDoc() {
+    const { key } = await newKey(await newOrg(), 10);
+    const doc = (await (await runDuty(key)).json()) as { result: unknown; receipt: { payload: string; unsigned_view: Record<string, unknown> } };
+    const jwks = (await (await call('/.well-known/receipt-signing-key.json')).json()) as { keys: unknown[] };
+    return { doc, pub: jwks.keys[0] };
+  }
+
+  it('passes a real response and checks the arguments that were sent', async () => {
+    const { doc, pub } = await successDoc();
+    const out = await checkResponse(doc, pub, DUTY_ARGS);
+    expect(out.valid).toBe(true);
+    expect(out.checks).toEqual({ signature: true, result_hash: true, input_hash: true, unsigned_view: true });
+  });
+
+  it('fails a response whose result, readable copy or claimed input was changed', async () => {
+    const { doc, pub } = await successDoc();
+    expect((await checkResponse({ ...doc, result: { forged: true } }, pub)).checks.result_hash).toBe(false);
+    const view = { ...doc.receipt.unsigned_view, amount_mc: 1 };
+    expect((await checkResponse({ ...doc, receipt: { ...doc.receipt, unsigned_view: view } }, pub)).valid).toBe(false);
+    expect((await checkResponse(doc, pub, { ...DUTY_ARGS, channel: 'post' })).checks.input_hash).toBe(false);
+  });
+});
+
+describe('budget periods', () => {
+  afterEach(() => vi.useRealTimers());
+
+  it('starts a daily budget from 0 on the next UTC day', async () => {
+    vi.useFakeTimers({ toFake: ['Date'], now: Date.UTC(2026, 9, 21, 23, 0) });
+    const { key } = await newKey(await newOrg(), 1, ['*'], 'daily');
+    expect((await runDuty(key)).status).toBe(200);
+    expect((await runDuty(key)).status).toBe(402);
+    vi.setSystemTime(Date.UTC(2026, 9, 22, 0, 1));
+    const res = await runDuty(key);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { balance: { resets_at: string } };
+    expect(body.balance.resets_at).toBe('2026-10-23T00:00:00.000Z');
+  });
+
+  it('keeps a monthly budget spent for the rest of the month', async () => {
+    vi.useFakeTimers({ toFake: ['Date'], now: Date.UTC(2026, 9, 1) });
+    const { key } = await newKey(await newOrg(), 1, ['*'], 'monthly');
+    expect((await runDuty(key)).status).toBe(200);
+    vi.setSystemTime(Date.UTC(2026, 9, 31, 23, 59));
+    expect((await runDuty(key)).status).toBe(402);
+    vi.setSystemTime(Date.UTC(2026, 10, 1));
+    expect((await runDuty(key)).status).toBe(200);
+  });
+
+  it('rejects an unknown period', async () => {
+    const orgId = await newOrg();
+    const res = await call('/api/admin/keys', { headers: admin, json: { orgId, name: 'a', budgetCents: 1, budgetPeriod: 'hourly' } });
+    expect(res.status).toBe(400);
+  });
+});
+
+describe('operator-added MCP tools', () => {
+  const tool = { name: 'web_search', mcpUrl: CUSTOM_MCP, upstreamTool: 'search', costCents: 0.5, priceCents: 1, timeoutMs: 1000 };
+
+  it('adds a tool from its own tools/list, clears a call through it and stops it once disabled', async () => {
+    const created = await call('/api/admin/tools', { headers: admin, json: tool });
+    expect(created.status).toBe(201);
+    const { key } = await newKey(await newOrg(), 10, ['web_search']);
+    const list = (await (await call('/mcp', { headers: { 'x-api-key': key }, json: { jsonrpc: '2.0', id: 1, method: 'tools/list' } })).json()) as {
+      result: { tools: { name: string; inputSchema: unknown }[] };
+    };
+    expect(list.result.tools.find(t => t.name === 'web_search')?.inputSchema).toEqual(CUSTOM_SCHEMA);
+
+    const run = (args: unknown) => call('/v1/tools/web_search/run', { headers: { 'x-api-key': key }, json: args });
+    expect((await run({})).status).toBe(400);
+    const ok = await run({ q: 'agent budgets' });
+    expect(ok.status).toBe(200);
+    expect(ok.headers.get('x-clearing-price-cents')).toBe('1');
+    expect(upstreamCalls.at(-1)).toMatchObject({ url: CUSTOM_MCP, body: { params: { name: 'search', arguments: { q: 'agent budgets' } } } });
+
+    expect((await call('/api/admin/tools/web_search/disable', { method: 'POST', headers: admin })).status).toBe(200);
+    expect((await run({ q: 'again' })).status).toBe(404);
+  });
+
+  it('refuses a plain http URL, a bad name, a clash with a built-in tool and a tool the server does not list', async () => {
+    const post = (json: unknown) => call('/api/admin/tools', { headers: admin, json });
+    expect((await post({ ...tool, mcpUrl: 'http://mcp.example.test/mcp' })).status).toBe(400);
+    expect((await post({ ...tool, name: 'Bad-Name' })).status).toBe(400);
+    expect((await post({ ...tool, name: 'eu_duty_estimate' })).status).toBe(400);
+    expect((await post({ ...tool, upstreamTool: 'missing' })).status).toBe(400);
+  });
+
+  it('answers 504 and refunds the price when the upstream is slower than the tool timeout', async () => {
+    await call('/api/admin/tools', { headers: admin, json: tool });
+    const { key } = await newKey(await newOrg(), 10);
+    upstreamMode = 'hang';
+    const res = await call('/v1/tools/web_search/run', { headers: { 'x-api-key': key }, json: { q: 'slow' } });
+    expect(res.status).toBe(504);
+    expect(res.headers.get('x-clearing-remaining-budget-cents')).toBe('10');
   });
 });
 
@@ -196,6 +304,15 @@ describe('public sandbox', () => {
     expect(first.allowlist).toEqual(['eu_duty_estimate', 'check_vat_number']);
     expect((await call('/api/demo/keys', { method: 'POST' })).status).toBe(201);
     expect((await call('/api/demo/keys', { method: 'POST' })).status).toBe(429);
+  });
+
+  it('puts every sandbox key in its own organization', async () => {
+    const mint = async () => (await (await call('/api/demo/keys', { method: 'POST' })).json()) as { key: string; org_id: string };
+    const a = await mint();
+    const b = await mint();
+    expect(a.org_id).not.toBe(b.org_id);
+    const receiptId = (await runDuty(a.key)).headers.get('x-clearing-receipt');
+    expect((await call(`/v1/receipts/${receiptId}`, { headers: { 'x-api-key': b.key } })).status).toBe(404);
   });
 });
 

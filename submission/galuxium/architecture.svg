@@ -32,7 +32,7 @@
   <rect x="40" y="340" width="220" height="92" rx="8" class="box"/>
   <text x="58" y="368" class="h">Operator</text>
   <text x="58" y="392" class="m">/api/admin/*</text>
-  <text x="58" y="414" class="s">bearer token: keys, budgets</text>
+  <text x="58" y="414" class="s">keys, budgets, tools</text>
 
   <text x="320" y="112" class="lab">CLEARING PATH (src/clearing.ts)</text>
   <rect x="320" y="124" width="420" height="380" rx="8" class="hi"/>
@@ -64,14 +64,14 @@
   <rect x="800" y="272" width="360" height="86" rx="8" class="box"/>
   <text x="818" y="300" class="h">DeepWiki (public MCP)</text>
   <text x="818" y="324" class="s">ask_repo_question, SSE answers</text>
-  <text x="818" y="344" class="s">no fallback data on any upstream</text>
+  <text x="818" y="344" class="s">+ any MCP server an operator adds, no deploy</text>
   <path d="M740 320 H760 V190 H792" class="l"/>
   <path d="M760 315 H792" class="l"/>
 
   <text x="800" y="400" class="lab">D1 LEDGER</text>
   <rect x="800" y="412" width="360" height="148" rx="8" class="box"/>
   <text x="818" y="440" class="m">organizations  agent_keys</text>
-  <text x="818" y="462" class="m">audit_logs  receipts  usage_events</text>
+  <text x="818" y="462" class="m">audit_logs  receipts  custom_tools</text>
   <text x="818" y="490" class="s">integer millicents; CHECK spent &lt;= budget</text>
   <text x="818" y="512" class="s">audit_logs and receipts are append-only</text>
   <text x="818" y="534" class="s">receipts visible only within their org</text>

@@ -2,6 +2,7 @@ import type { AgentKey, Env, RpcRequest } from './types.ts';
 import { authenticateAgent, balanceView, clearToolCall, parseAllowlist, receiptView, type ClearingOutcome } from './clearing.ts';
 import { getReceiptById } from './db.ts';
 import { mcpToolList } from './tools.ts';
+import { listTools } from './tool-registry.ts';
 import { extractAgentKey } from './proxy.ts';
 import { mcToCents } from './money.ts';
 
@@ -81,7 +82,7 @@ async function handleRpc(rpc: RpcRequest, request: Request, env: Env): Promise<u
   if (id === undefined) return null; // notifications need no answer
   if (method === 'initialize') return initialize(id, params);
   if (method === 'ping') return rpcResult(id, {});
-  if (method === 'tools/list') return rpcResult(id, { tools: mcpToolList() });
+  if (method === 'tools/list') return rpcResult(id, { tools: mcpToolList(await listTools(env)) });
   if (method === 'tools/call') return toolsCall(id, params, request, env);
   return rpcError(id, -32601, `Method not found: ${method}`);
 }

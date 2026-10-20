@@ -9,7 +9,8 @@ import {
   receiptView,
 } from './clearing.ts';
 import { currentPeriod, getReceiptById, getUsageEvents, listReceipts, rotateAgentKey } from './db.ts';
-import { GOVERNED_TOOLS, inputSchemaFor } from './tools.ts';
+import type { GovernedTool } from './tools.ts';
+import { listTools } from './tool-registry.ts';
 import { mcToCents, mcToUsd } from './money.ts';
 
 export function jsonResponse(data: unknown, status = 200, headers: Record<string, string> = {}): Response {
@@ -33,16 +34,16 @@ async function withAgent(request: Request, env: Env, handler: Authed): Promise<R
   return handler(auth.key);
 }
 
-function toolCatalog(key: AgentKey | null) {
+function toolCatalog(tools: GovernedTool[], key: AgentKey | null) {
   const allowlist = key ? parseAllowlist(key) : null;
-  return GOVERNED_TOOLS.map(tool => {
+  return tools.map(tool => {
     const priceMc = key ? priceFor(key, tool) : tool.priceMc;
     return {
       name: tool.name,
       title: tool.title,
       description: tool.description,
       upstream: tool.target.upstream,
-      inputSchema: inputSchemaFor(tool.name),
+      inputSchema: tool.inputSchema,
       price_cents: mcToCents(priceMc),
       price_usd: mcToUsd(priceMc),
       ...(allowlist ? { allowed: allowlist.includes('*') || allowlist.includes(tool.name) } : {}),
@@ -52,9 +53,10 @@ function toolCatalog(key: AgentKey | null) {
 
 async function handleListTools(request: Request, env: Env): Promise<Response> {
   const rawKey = extractAgentKey(request);
-  if (!rawKey) return jsonResponse({ tools: toolCatalog(null) });
+  const tools = await listTools(env);
+  if (!rawKey) return jsonResponse({ tools: toolCatalog(tools, null) });
   return withAgent(request, env, async key =>
-    jsonResponse({ tools: toolCatalog(key), balance: balanceView(key) })
+    jsonResponse({ tools: toolCatalog(tools, key), balance: balanceView(key) })
   );
 }
 

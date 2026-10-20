@@ -19,6 +19,9 @@ export interface GovernedTool {
   /** Default list price charged to the agent key per successful call. */
   priceMc: Millicents;
   timeoutMs: number;
+  inputSchema: JsonSchema;
+  /** True for a tool an operator added at run time (custom_tools), false for a built-in one. */
+  custom: boolean;
 }
 
 const OPENKRILL_MCP = (plugin: string, tool: string): UpstreamTarget => ({
@@ -29,8 +32,12 @@ const OPENKRILL_MCP = (plugin: string, tool: string): UpstreamTarget => ({
   auth: 'openkrill',
 });
 
-/** Governed tools, in the order agents see them. Schemas come from scripts/sync-tool-schemas.mjs. */
-export const GOVERNED_TOOLS: GovernedTool[] = [
+const SCHEMAS = schemas as Record<string, JsonSchema>;
+
+type BuiltinTool = Omit<GovernedTool, 'inputSchema' | 'custom'>;
+
+/** Built-in tools, in the order agents see them. Schemas come from scripts/sync-tool-schemas.mjs. */
+const BUILTIN_DEFINITIONS: BuiltinTool[] = [
   {
     name: 'eu_duty_estimate',
     title: 'EU duty on a low-value consignment',
@@ -107,9 +114,15 @@ export const GOVERNED_TOOLS: GovernedTool[] = [
   },
 ];
 
-const BY_NAME = new Map(GOVERNED_TOOLS.map(t => [t.name, t]));
+export const BUILTIN_TOOLS: GovernedTool[] = BUILTIN_DEFINITIONS.map(t => ({
+  ...t,
+  inputSchema: SCHEMAS[t.name],
+  custom: false,
+}));
 
-export function findGovernedTool(name: string): GovernedTool | undefined {
+const BY_NAME = new Map(BUILTIN_TOOLS.map(t => [t.name, t]));
+
+export function findBuiltinTool(name: string): GovernedTool | undefined {
   return BY_NAME.get(name);
 }
 
@@ -134,20 +147,10 @@ export const DESK_TOOLS: McpToolDefinition[] = [
   },
 ];
 
-const SCHEMAS = schemas as Record<string, JsonSchema>;
-
-export function mcpToolList(): McpToolDefinition[] {
+/** MCP tools/list entries for governed tools plus the free desk tools. */
+export function mcpToolList(tools: GovernedTool[]): McpToolDefinition[] {
   return [
-    ...GOVERNED_TOOLS.map(t => ({
-      name: t.name,
-      title: t.title,
-      description: t.description,
-      inputSchema: SCHEMAS[t.name],
-    })),
+    ...tools.map(t => ({ name: t.name, title: t.title, description: t.description, inputSchema: t.inputSchema })),
     ...DESK_TOOLS,
   ];
-}
-
-export function inputSchemaFor(name: string): JsonSchema | undefined {
-  return SCHEMAS[name];
 }

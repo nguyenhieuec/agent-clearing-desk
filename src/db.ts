@@ -1,6 +1,7 @@
 import type {
   AgentKey,
   AuditLog,
+  BudgetPeriod,
   ClearingStatus,
   Millicents,
   Organization,
@@ -16,6 +17,7 @@ import {
   sha256Hex,
   signReceiptPayload,
 } from './crypto.ts';
+import { periodKey } from './budget-period.ts';
 
 export async function getAgentKeyByRawKey(db: D1Database, rawKey: string): Promise<AgentKey | null> {
   const hash = await sha256Hex(rawKey.trim());
@@ -39,10 +41,6 @@ export async function getOrganization(db: D1Database, id: string): Promise<Organ
   return db.prepare('SELECT * FROM organizations WHERE id = ?').bind(id).first<Organization>();
 }
 
-export async function findOrganizationByName(db: D1Database, name: string): Promise<Organization | null> {
-  return db.prepare('SELECT * FROM organizations WHERE name = ? LIMIT 1').bind(name).first<Organization>();
-}
-
 export async function listOrganizations(db: D1Database): Promise<Organization[]> {
   const res = await db.prepare('SELECT * FROM organizations ORDER BY created_at DESC').all<Organization>();
   return res.results;
@@ -55,6 +53,7 @@ export interface NewAgentKey {
   allowlist: string[];
   priceOverrides?: Record<string, Millicents>;
   expiresAt?: number | null;
+  budgetPeriod?: BudgetPeriod;
 }
 
 export async function createAgentKey(
@@ -71,6 +70,8 @@ export async function createAgentKey(
     name: params.name,
     budget_mc: params.budgetMc,
     spent_mc: 0,
+    budget_period: params.budgetPeriod ?? 'none',
+    period_key: periodKey(params.budgetPeriod ?? 'none', now),
     allowlist: JSON.stringify(params.allowlist),
     price_overrides: JSON.stringify(params.priceOverrides ?? {}),
     status: 'active',
@@ -81,8 +82,8 @@ export async function createAgentKey(
   await db
     .prepare(
       `INSERT INTO agent_keys (key_hash, key_id, key_prefix, org_id, name, budget_mc, spent_mc,
-        allowlist, price_overrides, status, expires_at, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, 'active', ?, ?, ?)`
+        budget_period, period_key, allowlist, price_overrides, status, expires_at, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, 'active', ?, ?, ?)`
     )
     .bind(
       key.key_hash,
@@ -91,6 +92,8 @@ export async function createAgentKey(
       key.org_id,
       key.name,
       key.budget_mc,
+      key.budget_period,
+      key.period_key,
       key.allowlist,
       key.price_overrides,
       key.expires_at,
@@ -138,28 +141,43 @@ export async function listAgentKeys(db: D1Database, limit = 100): Promise<AgentK
   return res.results;
 }
 
-export async function countKeysCreatedSince(db: D1Database, orgId: string, sinceMs: number): Promise<number> {
+/**
+ * Take one of `limit` slots for the current UTC day in a single statement, so parallel
+ * callers can never take more than `limit`. Returns the slot number, or null when the day is full.
+ */
+export async function claimDailySlot(db: D1Database, name: string, limit: number, now: number): Promise<number | null> {
+  if (limit <= 0) return null;
   const row = await db
-    .prepare('SELECT COUNT(*) AS n FROM agent_keys WHERE org_id = ? AND created_at >= ?')
-    .bind(orgId, sinceMs)
-    .first<{ n: number }>();
-  return row?.n ?? 0;
+    .prepare(
+      `INSERT INTO desk_counters (name, period, count) VALUES (?1, ?2, 1)
+       ON CONFLICT(name, period) DO UPDATE SET count = count + 1 WHERE count < ?3
+       RETURNING count`
+    )
+    .bind(name, new Date(now).toISOString().slice(0, 10), limit)
+    .first<{ count: number }>();
+  return row?.count ?? null;
 }
+
+/** The period a key's spend counts toward, chosen in SQL from the key's own budget_period. */
+const PERIOD_SQL = "(CASE budget_period WHEN 'daily' THEN ?4 WHEN 'monthly' THEN ?5 ELSE '' END)";
+/** Spend in the current period: spend stored under an earlier period counts as 0. */
+const CURRENT_SPEND_SQL = `(CASE WHEN period_key = ${PERIOD_SQL} THEN spent_mc ELSE 0 END)`;
 
 /**
  * Reserve the call price before the upstream runs. One conditional UPDATE is the
  * whole budget gate: D1 runs it atomically, so N parallel calls on a key with room
- * for one see exactly one change and N-1 refusals. Zero-price calls skip it.
+ * for one see exactly one change and N-1 refusals. The same statement starts a new
+ * day or month from 0 for keys with a budget period. Zero-price calls skip it.
  */
 export async function reserveBudget(db: D1Database, keyId: string, priceMc: Millicents, now: number): Promise<boolean> {
   if (priceMc === 0) return true;
   const res = await db
     .prepare(
-      `UPDATE agent_keys SET spent_mc = spent_mc + ?1, updated_at = ?2
+      `UPDATE agent_keys SET spent_mc = ${CURRENT_SPEND_SQL} + ?1, period_key = ${PERIOD_SQL}, updated_at = ?2
        WHERE key_id = ?3 AND status = 'active' AND (expires_at IS NULL OR expires_at > ?2)
-         AND spent_mc + ?1 <= budget_mc`
+         AND ${CURRENT_SPEND_SQL} + ?1 <= budget_mc`
     )
-    .bind(priceMc, now, keyId)
+    .bind(priceMc, now, keyId, periodKey('daily', now), periodKey('monthly', now))
     .run();
   return res.meta.changes === 1;
 }
@@ -295,9 +313,10 @@ export async function recordLedgerEntry(db: D1Database, e: LedgerEntry): Promise
       ),
   ];
   if (e.refundMc > 0) {
+    // A refund that lands after a daily or monthly reset must not push the new period below 0.
     statements.push(
       db
-        .prepare('UPDATE agent_keys SET spent_mc = spent_mc - ?, updated_at = ? WHERE key_id = ?')
+        .prepare('UPDATE agent_keys SET spent_mc = MAX(0, spent_mc - ?), updated_at = ? WHERE key_id = ?')
         .bind(e.refundMc, now, e.key.key_id)
     );
   }

@@ -106,6 +106,21 @@ async function callRest(
   return { ok: true, data: body };
 }
 
+/** The tools an MCP server lists, for an operator adding one of them to the desk. */
+export async function listMcpServerTools(url: string, timeoutMs = 15_000): Promise<{ name: string; description?: string; inputSchema?: unknown }[]> {
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} }),
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+  if (!res.ok) throw new Error(`tools/list answered HTTP ${res.status}`);
+  const rpc = await readJsonRpc(res);
+  const tools = (rpc.result as { tools?: unknown } | undefined)?.tools;
+  if (!Array.isArray(tools)) throw new Error('tools/list returned no tools array');
+  return tools as { name: string; description?: string; inputSchema?: unknown }[];
+}
+
 /**
  * Run a governed tool on its upstream. Every failure (HTTP error, tool error, timeout,
  * bad payload) comes back as ok:false; the desk never substitutes its own data.

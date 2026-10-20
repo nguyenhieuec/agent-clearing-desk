@@ -166,11 +166,18 @@ function tamper(payload) {
   return { text: JSON.stringify(obj), before, after: obj.amount_mc };
 }
 
-async function verifyReceipt(receipt) {
+async function sha256Hex(value) {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify(value)));
+  return [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+/** Signature, a one-field tamper test and, when the agent's result is at hand, the signed result hash. */
+async function verifyReceipt(receipt, result) {
   const original = await verifyPayload(receipt.payload, receipt.signature);
   const t = tamper(receipt.payload);
   const tampered = await verifyPayload(t.text, receipt.signature);
-  return { original: original.ok, tampered: tampered.ok, kid: original.kid, before: t.before, after: t.after };
+  const resultMatch = result === undefined ? null : JSON.parse(receipt.payload).result_sha256 === (await sha256Hex(result));
+  return { original: original.ok, tampered: tampered.ok, resultMatch, kid: original.kid, before: t.before, after: t.after };
 }
 
 function verifyResultNode(v) {
@@ -286,7 +293,7 @@ async function refreshSandboxReceipts() {
 }
 
 function receiptListItem(rc) {
-  const f = rc.fields || {};
+  const f = JSON.parse(rc.payload);
   const result = el('div');
   return el('li', {},
     el('div', { class: 'rl-top' }, el('span', { class: 'rl-id', text: rc.receipt_id }), verifyButton(rc, result)),
@@ -353,7 +360,10 @@ const DEMO_STEPS = [
         const c = result.consignments && result.consignments[0];
         if (c && c.note) facts.push(['upstream says', c.note, 'text']);
       }
-      if (r.body && r.body.receipt) ctx.saved.dutyReceipt = r.body.receipt;
+      if (r.body && r.body.receipt) {
+        ctx.saved.dutyReceipt = r.body.receipt;
+        ctx.saved.dutyResult = r.body.result;
+      }
       ctx.addCall(r, facts);
       if (r.status === 200 && chargedCents(r) === 1) return { verdict: 'pass' };
       if (r.status === 502 || r.status === 504) {
@@ -415,12 +425,12 @@ const DEMO_STEPS = [
       if (!receipt) return { verdict: 'differs', note: 'Step 2 returned no receipt, so there is nothing to verify.' };
       let v;
       try {
-        v = await verifyReceipt(receipt);
+        v = await verifyReceipt(receipt, ctx.saved.dutyResult);
       } catch (err) {
         return { verdict: 'differs', note: `This browser could not run Ed25519 in WebCrypto: ${err.message || err}. Use a current Chrome, Firefox or Safari.` };
       }
       ctx.addNode(verifyPanel(receipt, v));
-      return v.original && !v.tampered ? { verdict: 'pass' } : { verdict: 'differs', note: 'The signature check did not give the expected result.' };
+      return v.original && !v.tampered && v.resultMatch !== false ? { verdict: 'pass' } : { verdict: 'differs', note: 'The signature check did not give the expected result.' };
     },
   },
   {
@@ -459,7 +469,9 @@ function verifyPanel(receipt, v) {
     el('div', { class: 'verify-row' }, el('span', { class: 'muted', text: 'Original payload' }),
       dot(v.original ? 'valid Ed25519 signature' : 'INVALID', v.original ? 'ok' : 'bad')),
     el('div', { class: 'verify-row' }, el('span', { class: 'muted', text: `Copy with amount_mc ${v.before} changed to ${v.after}` }),
-      dot(v.tampered ? 'still valid (unexpected)' : 'signature fails', 'bad')));
+      dot(v.tampered ? 'still valid (unexpected)' : 'signature fails', 'bad')),
+    v.resultMatch === null ? null : el('div', { class: 'verify-row' }, el('span', { class: 'muted', text: 'SHA-256 of the result step 2 returned' }),
+      dot(v.resultMatch ? 'matches the signed result_sha256' : 'does NOT match result_sha256', v.resultMatch ? 'ok' : 'bad')));
 }
 
 // ---------- Step log rendering ----------
@@ -786,11 +798,16 @@ function renderKeys(keys) {
     td(k.key_prefix, 'mono'),
     td(orgName(k.org_id)),
     td(allowCell(k.allowlist), 'wrapcell'),
-    td(meterCell(k.spent_cents, k.budget_cents)),
+    td(el('div', {}, meterCell(k.spent_cents, k.budget_cents), periodNote(k))),
     td(statusDot(k.expires_at && k.expires_at <= Date.now() && k.status === 'active' ? 'expired' : k.status)),
     td(expiry(k.expires_at), 'faint'),
     td(keyActions(k))));
   table('keys-table', ['Name', 'Prefix', 'Org', 'Allowlist', 'Budget', 'Status', 'Expires', 'Actions'], rows, 'No agent keys yet.');
+}
+
+function periodNote(k) {
+  if (!k.budget_period || k.budget_period === 'none') return null;
+  return el('div', { class: 'faint', text: `${k.budget_period}, resets ${when(Date.parse(k.resets_at))}` });
 }
 
 function orgName(id) {
@@ -877,7 +894,10 @@ async function createKey(e) {
   if (!allowlist.length) { hint.textContent = 'Pick at least one tool, or * for all.'; return; }
   const org = await ensureOrg();
   if (org.error) { hint.textContent = org.error; return; }
-  const body = { orgId: org.id, name: $('ck-name').value.trim(), budgetCents: Number($('ck-budget').value), allowlist };
+  const body = {
+    orgId: org.id, name: $('ck-name').value.trim(), budgetCents: Number($('ck-budget').value), allowlist,
+    budgetPeriod: $('ck-period').value,
+  };
   const exp = Number($('ck-exp').value);
   if (exp > 0) body.expiresInMinutes = exp;
   const r = await admin('POST', '/api/admin/keys', body);
@@ -926,17 +946,46 @@ function argsCell(a) {
   return cell;
 }
 
+function toolSource(t) {
+  if (!t.custom) return el('span', { class: 'faint', text: 'built in' });
+  return el('div', { class: 'actions' },
+    el('span', { class: 'faint mono', text: `added: ${t.upstream_tool}` }),
+    el('button', { class: 'btn tiny danger', type: 'button', text: 'Disable', onclick: () => disableTool(t) }));
+}
+
 function renderPrices() {
   const rows = adm.tools.map(t => el('tr', {},
     td(t.name, 'mono'), td(t.upstream),
     td(usd(t.cost_cents), 'num r'), td(usd(t.price_cents), 'num r'), td(usd(t.margin_cents), 'num r'),
-    td(t.price_cents > 0 ? `${((t.margin_cents / t.price_cents) * 100).toFixed(1)} %` : '-', 'num r')));
-  table('prices-table', ['Tool', 'Upstream', 'Cost ', 'Price ', 'Margin ', 'Margin % '], rows, 'No tools.');
+    td(t.price_cents > 0 ? `${((t.margin_cents / t.price_cents) * 100).toFixed(1)} %` : '-', 'num r'),
+    td(toolSource(t))));
+  table('prices-table', ['Tool', 'Upstream', 'Cost ', 'Price ', 'Margin ', 'Margin % ', 'Source'], rows, 'No tools.');
+}
+
+async function createTool(e) {
+  e.preventDefault();
+  const body = {
+    name: $('ct-name').value.trim(), mcpUrl: $('ct-url').value.trim(), upstreamTool: $('ct-upstream').value.trim(),
+    costCents: Number($('ct-cost').value), priceCents: Number($('ct-price').value),
+  };
+  $('tool-hint').textContent = 'Reading the server\'s tools/list...';
+  const r = await admin('POST', '/api/admin/tools', body);
+  if (r.status !== 201) { $('tool-hint').textContent = adminFailure(r); return; }
+  $('tool-hint').textContent = `Added ${r.body.name}. Agents see it in tools/list now.`;
+  e.target.reset();
+  await loadConsole();
+}
+
+async function disableTool(t) {
+  if (!confirm(`Disable ${t.name}? Agents get 404 for it from now on.`)) return;
+  const r = await admin('POST', `/api/admin/tools/${t.name}/disable`);
+  if (r.status === 200) await loadConsole();
+  else consoleFlash(adminFailure(r), 'bad');
 }
 
 function renderAdminReceipts() {
   const rows = adm.receipts.map(rc => {
-    const f = rc.fields || {};
+    const f = JSON.parse(rc.payload);
     const result = el('div');
     return el('tr', {},
       td(rc.receipt_id, 'mono'), td(when(f.issued_at), 'faint'), td(f.key_id, 'mono'), td(f.tool, 'mono'),
@@ -965,6 +1014,7 @@ function initConsole() {
   $('console-refresh').addEventListener('click', loadConsole);
   $('ck-org').addEventListener('change', () => { $('new-org').hidden = $('ck-org').value !== NEW_ORG; });
   $('create-form').addEventListener('submit', createKey);
+  $('tool-form').addEventListener('submit', createTool);
 }
 
 // ---------- Boot ----------

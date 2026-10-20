@@ -29,6 +29,8 @@ export interface Organization {
   created_at: number;
 }
 
+export type BudgetPeriod = 'none' | 'daily' | 'monthly';
+
 export interface AgentKey {
   key_hash: string;
   key_id: string;
@@ -37,6 +39,10 @@ export interface AgentKey {
   name: string;
   budget_mc: Millicents;
   spent_mc: Millicents;
+  /** When spend starts again from 0: never, each UTC day, or each UTC month. */
+  budget_period: BudgetPeriod;
+  /** The day or month spent_mc belongs to ('' when budget_period is none). */
+  period_key: string;
   allowlist: string; // JSON string array of desk tool names, or ["*"] for every governed tool
   price_overrides: string; // JSON object: desk tool name -> price in millicents
   status: 'active' | 'revoked';

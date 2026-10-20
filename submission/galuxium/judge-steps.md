@@ -13,9 +13,9 @@ No account is needed.
    3. `get_app_reviews` (not allowed): 403, 0 charged, signed receipt.
    4. `check_vat_number` against EU VIES: 200, budget now used up.
    5. `eu_duty_estimate` again: 402, signed receipt, no upstream call.
-   6. The browser fetches the public key and checks the step 2 signature with WebCrypto. A copy with one changed field fails.
+   6. The browser fetches the public key and checks the step 2 receipt with WebCrypto: the signature, and that the SHA-256 of the answer from step 2 is the signed `result_sha256`. A copy with one changed field fails.
    7. The key rotates: the old secret gets 401, the new one gets 200 with the spend kept.
-   If a live upstream is slow or down, the step shows 502 or 504 with `upstream_error`: the reservation is refunded and the receipt still verifies. Run the demo again with a new key.
+   If a live upstream is down the step shows 502, and if it is slower than the tool's timeout it shows 504, both with `upstream_error`: the reservation is refunded and the receipt still verifies. Run the demo again with a new key.
 4. Use **Verify offline** on any receipt in the side panel, or the **Agent call simulator** to call a tool yourself.
 
 ## 2. With curl
@@ -27,9 +27,9 @@ DESK=https://agent-clearing-desk.nguyenhieuec.workers.dev
 KEY=$(curl -s -X POST $DESK/api/demo/keys | node -pe 'JSON.parse(require("fs").readFileSync(0)).key')
 
 # cleared: 200, 1 cent, signed receipt in the body and the headers
+echo '{"lines":[{"description":"cotton t-shirt","origin":"CN","qty":3,"unit_value_eur":25}],"channel":"ioss"}' > args.json
 curl -s -D - -X POST $DESK/v1/tools/eu_duty_estimate/run -H "x-api-key: $KEY" -H 'content-type: application/json' \
-  -d '{"lines":[{"description":"cotton t-shirt","origin":"CN","qty":3,"unit_value_eur":25}],"channel":"ioss"}' \
-  -o receipt-call.json | grep x-clearing
+  -d @args.json -o receipt-call.json | grep x-clearing
 
 # not on the allowlist: 403, nothing charged
 curl -s -o /dev/null -w '%{http_code}\n' -X POST $DESK/v1/tools/get_app_reviews/run -H "x-api-key: $KEY" \
@@ -47,9 +47,22 @@ curl -s -o /dev/null -w '%{http_code}\n' $DESK/api/admin/keys
 ```bash
 git clone https://github.com/nguyenhieuec/agent-clearing-desk && cd agent-clearing-desk
 curl -s https://agent-clearing-desk.nguyenhieuec.workers.dev/.well-known/receipt-signing-key.json > public-key.json
-node scripts/verify-receipt.mjs ../receipt-call.json public-key.json
-# {"valid":true,...}; edit amount_mc in the file and it prints valid:false
+node scripts/verify-receipt.mjs ../receipt-call.json public-key.json --input ../args.json
+# {"valid":true,"checks":{"signature":true,"result_hash":true,"input_hash":true,"unsigned_view":true},...}
 ```
+
+The script checks the Ed25519 signature over `payload`, the SHA-256 of `result` against the signed `result_sha256`, the SHA-256 of your arguments against the signed `params_sha256`, and that the readable `unsigned_view` matches the signed `payload`.
+It exits 0 when every check passes and 1 when one fails.
+
+Now change the signed amount and check again:
+
+```bash
+node -e 'const f="../receipt-call.json",d=JSON.parse(require("fs").readFileSync(f));d.receipt.payload=d.receipt.payload.replace(/"amount_mc":\d+/,"\"amount_mc\":1");require("fs").writeFileSync("../forged.json",JSON.stringify(d))'
+node scripts/verify-receipt.mjs ../forged.json public-key.json
+# {"valid":false,"checks":{"signature":false,...}}
+```
+
+Or keep the receipt and change the answer: edit any value inside `result` in a copy of the file, and `result_hash` turns false.
 
 ## 4. As an MCP client
 
@@ -67,13 +80,14 @@ Add the desk as a Streamable HTTP MCP server with the sandbox key in a header:
 }
 ```
 
-`tools/list` shows 9 tools: 7 governed tools with their price, plus the free `check_agent_balance` and `get_call_receipt`.
+`tools/list` shows 9 tools: 7 built-in governed tools with their price, plus the free `check_agent_balance` and `get_call_receipt`.
+Tools an operator adds from another MCP server at run time appear in the same list.
 
 ## 5. Run the tests
 
 ```bash
 npm install
-npm test          # 20 tests on real SQLite with the production migrations
+npm test          # 29 tests on real SQLite with the production migrations
 npm run typecheck
 node scripts/run-e2e.mjs out.json   # live sandbox flow; the operator flow needs ADMIN_SECRET
 ```

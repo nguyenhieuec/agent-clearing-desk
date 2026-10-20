@@ -221,7 +221,7 @@ async function ledgerOutcomes() {
   const res = await fetch(`${DESK_URL}/v1/receipts?limit=200`, { headers: { 'x-api-key': process.env.CLEARING_DESK_KEY } });
   const { receipts = [] } = await res.json();
   const counts = {};
-  for (const r of receipts) counts[r.fields.outcome] = (counts[r.fields.outcome] ?? 0) + 1;
+  for (const { outcome } of receipts.map(r => JSON.parse(r.payload))) counts[outcome] = (counts[outcome] ?? 0) + 1;
   return counts;
 }
 
