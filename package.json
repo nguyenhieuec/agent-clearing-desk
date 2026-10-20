@@ -1,0 +1,24 @@
+{
+  "name": "agent-clearing-desk",
+  "version": "0.1.0",
+  "description": "Agent Clearing Desk: Enterprise budget metering, tool allowlists, signed audit receipts, and openkrill tool proxy for autonomous AI agents",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "build": "wrangler deploy --dry-run --outdir dist",
+    "db:migrate:local": "CI=true wrangler d1 migrations apply DB --local",
+    "db:migrate:remote": "CI=true wrangler d1 migrations apply DB --remote",
+    "e2e": "node scripts/run-e2e.mjs"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241230.0",
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8",
+    "wrangler": "^3.99.0"
+  }
+}

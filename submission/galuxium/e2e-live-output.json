@@ -1,0 +1,223 @@
+{
+  "suite": "agent-clearing-desk-live-e2e",
+  "hackathon": "Galuxium Nexus V2",
+  "workerUrl": "https://agent-clearing-desk.nguyenhieuec.workers.dev",
+  "openkrillConnectKeyId": "05edfbb73f482e29",
+  "executedAt": "2026-10-20T14:03:35.990Z",
+  "steps": [
+    {
+      "step": "1_health_check",
+      "status": 200,
+      "latencyMs": 1025,
+      "response": {
+        "status": "ok",
+        "service": "agent-clearing-desk",
+        "time": 1792505016977
+      }
+    },
+    {
+      "step": "2_mint_scoped_key",
+      "status": 201,
+      "latencyMs": 727,
+      "keyId": "key_27a3757daa1659c0",
+      "keyPrefix": "cd_live_2c98...6a7c",
+      "budgetCents": 10,
+      "perCallPriceCents": 2,
+      "allowlist": [
+        "eu_duty_estimate",
+        "find_tariff_codes",
+        "check_vat_number",
+        "list_jobs",
+        "get_app_reviews"
+      ]
+    },
+    {
+      "step": "3_live_tool_eu_duty_estimate",
+      "status": 200,
+      "latencyMs": 1489,
+      "clearingReceipt": {
+        "receipt_id": "rcpt_31952920da3a7dafbd29a51d",
+        "receipt_hash": "4ed77704162385e2eb721d199a682ea88f96811cb5f9325b7fbf66c81834b1fa",
+        "amount_cents": 2,
+        "amount_usd": "0.0200",
+        "currency": "USD",
+        "issued_at": 1792505018880,
+        "remaining_budget_cents": 8,
+        "remaining_budget_usd": "0.0800",
+        "audit_log_id": "aud_31952920da3a7dafbd29a51d"
+      },
+      "resultSummary": {
+        "upstreamLive": true,
+        "upstreamEndpoint": "https://api.openkrill.app/plugins/shop-duty/mcp",
+        "total_duty_eur": 9,
+        "eligible_for_flat_duty": true
+      }
+    },
+    {
+      "step": "4_live_tool_find_tariff_codes",
+      "status": 200,
+      "latencyMs": 1768,
+      "clearingReceipt": {
+        "receipt_id": "rcpt_ec078729312ab9783a7c8465",
+        "receipt_hash": "7c22fbe4a87671e81bfe9057fb25de46a6a430723d8d946a80d247cd73c3a68b",
+        "amount_cents": 2,
+        "amount_usd": "0.0200",
+        "currency": "USD",
+        "issued_at": 1792505020927,
+        "remaining_budget_cents": 6,
+        "remaining_budget_usd": "0.0600",
+        "audit_log_id": "aud_ec078729312ab9783a7c8465"
+      },
+      "resultSummary": {
+        "upstreamLive": true,
+        "upstreamEndpoint": "https://api.openkrill.app/plugins/tariffs/mcp",
+        "totalMatches": 38,
+        "firstCode": "6912.00.35.10"
+      }
+    },
+    {
+      "step": "5_live_tool_check_vat_number",
+      "status": 200,
+      "latencyMs": 3510,
+      "clearingReceipt": {
+        "receipt_id": "rcpt_cea81108418ee7d1c843a26d",
+        "receipt_hash": "2acf9a5962976dba8286ba01c061f45538257b7ab57009bd5ab2e828af6df793",
+        "amount_cents": 2,
+        "amount_usd": "0.0200",
+        "currency": "USD",
+        "issued_at": 1792505024441,
+        "remaining_budget_cents": 4,
+        "remaining_budget_usd": "0.0400",
+        "audit_log_id": "aud_cea81108418ee7d1c843a26d"
+      },
+      "vatResult": {
+        "upstreamLive": true,
+        "upstreamEndpoint": "https://api.openkrill.app/plugins/eu-business/mcp",
+        "country": "AT",
+        "vatNumber": "U33864707",
+        "valid": true,
+        "name": "Red Bull GmbH"
+      }
+    },
+    {
+      "step": "6_live_tool_list_jobs",
+      "status": 200,
+      "latencyMs": 3716,
+      "clearingReceipt": {
+        "receipt_id": "rcpt_26fd072f94c9d7cf28db686e",
+        "receipt_hash": "f7f4db13986d56ef3374297f58092410cb6d73013d7a9be4caa47475067a17a6",
+        "amount_cents": 2,
+        "amount_usd": "0.0200",
+        "currency": "USD",
+        "issued_at": 1792505027735,
+        "remaining_budget_cents": 2,
+        "remaining_budget_usd": "0.0200",
+        "audit_log_id": "aud_26fd072f94c9d7cf28db686e"
+      },
+      "jobsReturned": 5,
+      "firstJobTitle": "Community Support Forecasting and Demand Planning Analyst"
+    },
+    {
+      "step": "7_live_tool_get_app_reviews",
+      "status": 200,
+      "latencyMs": 6119,
+      "clearingReceipt": {
+        "receipt_id": "rcpt_4a745e83b55cdb2f8432490e",
+        "receipt_hash": "28234c0c3ed20b6663a93965cee6a7fa8e38129d247cc8cd8897117bf32b5f00",
+        "amount_cents": 2,
+        "amount_usd": "0.0200",
+        "currency": "USD",
+        "issued_at": 1792505033580,
+        "remaining_budget_cents": 0,
+        "remaining_budget_usd": "0.0000",
+        "audit_log_id": "aud_4a745e83b55cdb2f8432490e"
+      },
+      "reviewsReturned": 6
+    },
+    {
+      "step": "8_policy_refusal_allowlist_403",
+      "status": 403,
+      "latencyMs": 2489,
+      "response": {
+        "error": {
+          "code": "tool_not_allowed",
+          "message": "Tool 'unauthorized_wire_transfer' is not permitted by agent key allowlist",
+          "key_id": "key_27a3757daa1659c0",
+          "tool_name": "unauthorized_wire_transfer"
+        }
+      }
+    },
+    {
+      "step": "9_budget_circuit_breaker_402",
+      "status": 402,
+      "latencyMs": 2303,
+      "response": {
+        "error": {
+          "code": "budget_exceeded",
+          "message": "Agent key budget exceeded: remaining balance $0.0000 is less than call price $0.0200",
+          "key_id": "key_27a3757daa1659c0",
+          "tool_name": "eu_duty_estimate",
+          "budget_cents": 10,
+          "spent_cents": 10,
+          "call_price_cents": 2,
+          "receipt_id": "rcpt_ab2053dfff6c4d4643f6b515"
+        }
+      }
+    },
+    {
+      "step": "10_verify_signed_receipt",
+      "status": 200,
+      "latencyMs": 2734,
+      "receiptId": "rcpt_31952920da3a7dafbd29a51d",
+      "signatureValid": true,
+      "receiptHashPrefix": "4ed77704162385e2eb721d19"
+    },
+    {
+      "step": "11_mcp_protocol_flow",
+      "status": 200,
+      "latencyMs": 752,
+      "mcpServer": {
+        "name": "agent-clearing-desk",
+        "version": "0.1.0",
+        "title": "Agent Clearing Desk"
+      },
+      "agentBalance": {
+        "key_id": "key_27a3757daa1659c0",
+        "budget_cents": 10,
+        "spent_cents": 10,
+        "remaining_cents": 0
+      },
+      "mcpReceiptVerified": true
+    },
+    {
+      "step": "12_key_rotation_and_usage_audit",
+      "oldKeyStatus": 401,
+      "newKeyStatus": 200,
+      "spentCents": 10,
+      "remainingBudgetCents": 0,
+      "toolUsageBreakdown": {
+        "check_vat_number": 1,
+        "eu_duty_estimate": 1,
+        "find_tariff_codes": 1,
+        "get_app_reviews": 1,
+        "list_jobs": 1
+      },
+      "upstreamOpenkrillUsage": {
+        "job-returned": 15,
+        "review-returned": 15
+      }
+    }
+  ],
+  "summary": {
+    "allAssertionsPassed": true,
+    "totalStepsVerified": 12,
+    "deskOverview": {
+      "totalOrgs": 1,
+      "totalKeys": 5,
+      "totalBudgetCents": 230,
+      "totalSpentCents": 24.45,
+      "totalReceipts": 22,
+      "totalMarginCents": 18.79
+    }
+  }
+}

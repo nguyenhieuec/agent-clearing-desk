@@ -1,0 +1,145 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 680" width="1200" height="680" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#070A12"/>
+      <stop offset="100%" stop-color="#0D1322"/>
+    </linearGradient>
+    <linearGradient id="deskGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#111A2E"/>
+      <stop offset="100%" stop-color="#0B1220"/>
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#10B981"/>
+      <stop offset="100%" stop-color="#38BDF8"/>
+    </linearGradient>
+    <marker id="arrowGreen" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9 z" fill="#10B981"/>
+    </marker>
+    <marker id="arrowBlue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9 z" fill="#38BDF8"/>
+    </marker>
+    <marker id="arrowAmber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9 z" fill="#F59E0B"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="680" fill="url(#bgGrad)"/>
+
+  <!-- Header Banner -->
+  <rect x="40" y="28" width="1120" height="68" rx="12" fill="#0F172A" stroke="#1E293B" stroke-width="1.5"/>
+  <rect x="58" y="46" width="10" height="32" rx="4" fill="url(#accentGrad)"/>
+  <text x="82" y="60" fill="#F8FAFC" font-size="20" font-weight="700" letter-spacing="0.3">AGENT CLEARING DESK - SYSTEM ARCHITECTURE</text>
+  <text x="82" y="81" fill="#94A3B8" font-size="13">FinOps Control Plane, Policy Allowlists, Budget Circuit Breakers, and Cryptographic Audit Receipts for Autonomous AI Agents</text>
+  <rect x="975" y="46" width="165" height="32" rx="16" fill="#064E3B" stroke="#10B981" stroke-width="1"/>
+  <text x="1057" y="67" fill="#34D399" font-size="12" font-weight="600" text-anchor="middle">GALUXIUM NEXUS V2</text>
+
+  <!-- Column 1: Autonomous AI Agents -->
+  <rect x="40" y="124" width="250" height="370" rx="14" fill="#0F172A" stroke="#334155" stroke-width="1.5"/>
+  <text x="64" y="156" fill="#38BDF8" font-size="12" font-weight="700" letter-spacing="1.2">1. AUTONOMOUS CLIENTS</text>
+  <text x="64" y="180" fill="#F8FAFC" font-size="16" font-weight="700">AI Agents &amp; Copilots</text>
+
+  <rect x="60" y="200" width="210" height="72" rx="8" fill="#1E293B" stroke="#475569" stroke-width="1"/>
+  <text x="76" y="225" fill="#F8FAFC" font-size="13" font-weight="600">MCP Host / Claude / Cursor</text>
+  <text x="76" y="245" fill="#94A3B8" font-size="11" font-family="monospace">POST /mcp (JSON-RPC 2.0)</text>
+  <text x="76" y="261" fill="#38BDF8" font-size="11" font-family="monospace">x-api-key: cd_live_...</text>
+
+  <rect x="60" y="288" width="210" height="72" rx="8" fill="#1E293B" stroke="#475569" stroke-width="1"/>
+  <text x="76" y="313" fill="#F8FAFC" font-size="13" font-weight="600">REST Tool Agent / SDK</text>
+  <text x="76" y="333" fill="#94A3B8" font-size="11" font-family="monospace">POST /v1/tools/:name/run</text>
+  <text x="76" y="349" fill="#10B981" font-size="11" font-family="monospace">GET /v1/usage &amp; /v1/receipts</text>
+
+  <rect x="60" y="376" width="210" height="96" rx="8" fill="#172033" stroke="#334155" stroke-width="1"/>
+  <text x="76" y="400" fill="#E2E8F0" font-size="12" font-weight="600">Zero-Trust Key Isolation</text>
+  <text x="76" y="420" fill="#94A3B8" font-size="11">Agents never hold upstream master</text>
+  <text x="76" y="436" fill="#94A3B8" font-size="11">keys. Each agent receives a</text>
+  <text x="76" y="452" fill="#94A3B8" font-size="11">scoped, rotatable cd_live_ token.</text>
+
+  <!-- Arrows Column 1 -> Column 2 -->
+  <line x1="290" y1="236" x2="348" y2="236" stroke="#38BDF8" stroke-width="2" marker-end="url(#arrowBlue)"/>
+  <line x1="290" y1="324" x2="348" y2="324" stroke="#10B981" stroke-width="2" marker-end="url(#arrowGreen)"/>
+
+  <!-- Column 2: Agent Clearing Desk Core (Cloudflare Worker) -->
+  <rect x="356" y="124" width="488" height="370" rx="14" fill="url(#deskGrad)" stroke="#10B981" stroke-width="2"/>
+  <text x="382" y="156" fill="#10B981" font-size="12" font-weight="700" letter-spacing="1.2">2. AGENT CLEARING DESK (CLOUDFLARE WORKER EDGE)</text>
+  <text x="382" y="180" fill="#F8FAFC" font-size="16" font-weight="700">Pre-Flight Policy &amp; Atomic Settlement Engine</text>
+
+  <!-- Step A: Key Hash Auth -->
+  <rect x="380" y="200" width="212" height="80" rx="8" fill="#0F172A" stroke="#334155" stroke-width="1.2"/>
+  <text x="396" y="222" fill="#38BDF8" font-size="12" font-weight="700">A. SHA-256 Key Lookup</text>
+  <text x="396" y="241" fill="#CBD5E1" font-size="11">Raw token hashed at edge.</text>
+  <text x="396" y="257" fill="#94A3B8" font-size="11">Plaintext key never stored in D1.</text>
+  <text x="396" y="273" fill="#F43F5E" font-size="10" font-family="monospace">Revoked/Rotated -&gt; 401/403</text>
+
+  <!-- Step B: Tool Allowlist Gate -->
+  <rect x="608" y="200" width="212" height="80" rx="8" fill="#0F172A" stroke="#334155" stroke-width="1.2"/>
+  <text x="624" y="222" fill="#F59E0B" font-size="12" font-weight="700">B. Tool Allowlist Guardrail</text>
+  <text x="624" y="241" fill="#CBD5E1" font-size="11">Checks per-key JSON allowlist.</text>
+  <text x="624" y="257" fill="#94A3B8" font-size="11">Blocks unauthorized tools before</text>
+  <text x="624" y="273" fill="#F59E0B" font-size="10" font-family="monospace">upstream call -&gt; 403 ($0.00)</text>
+
+  <!-- Step C: Budget Circuit Breaker -->
+  <rect x="380" y="296" width="212" height="84" rx="8" fill="#0F172A" stroke="#334155" stroke-width="1.2"/>
+  <text x="396" y="318" fill="#10B981" font-size="12" font-weight="700">C. Budget Circuit Breaker</text>
+  <text x="396" y="337" fill="#CBD5E1" font-size="11">Resolves wholesale cost + retail</text>
+  <text x="396" y="353" fill="#CBD5E1" font-size="11">price + desk margin in cents.</text>
+  <text x="396" y="369" fill="#F43F5E" font-size="10" font-family="monospace">spent + price &gt; cap -&gt; 402</text>
+
+  <!-- Step D: Signed Audit Receipt -->
+  <rect x="608" y="296" width="212" height="84" rx="8" fill="#0F172A" stroke="#334155" stroke-width="1.2"/>
+  <text x="624" y="318" fill="#A78BFA" font-size="12" font-weight="700">D. Signed Clearing Receipt</text>
+  <text x="624" y="337" fill="#CBD5E1" font-size="11">Canonical payload hashed &amp;</text>
+  <text x="624" y="353" fill="#CBD5E1" font-size="11">HMAC-SHA256 signed per call.</text>
+  <text x="624" y="369" fill="#A78BFA" font-size="10" font-family="monospace">rcpt_&lt;24hex&gt; == aud_&lt;24hex&gt;</text>
+
+  <!-- Bottom bar in Column 2: Response Headers -->
+  <rect x="380" y="396" width="440" height="76" rx="8" fill="#09101D" stroke="#1E293B" stroke-width="1"/>
+  <text x="396" y="418" fill="#34D399" font-size="12" font-weight="600">Deterministic Settlement Headers &amp; Envelope</text>
+  <text x="396" y="438" fill="#94A3B8" font-size="11" font-family="monospace">x-clearing-receipt: rcpt_... | x-clearing-price-cents: 2</text>
+  <text x="396" y="456" fill="#94A3B8" font-size="11" font-family="monospace">x-clearing-remaining-budget-cents: 8 | signature_valid: true</text>
+
+  <!-- Arrows Column 2 -> Column 3 -->
+  <line x1="844" y1="265" x2="902" y2="265" stroke="#10B981" stroke-width="2" marker-end="url(#arrowGreen)"/>
+  <line x1="902" y1="315" x2="844" y2="315" stroke="#38BDF8" stroke-width="2" marker-end="url(#arrowBlue)"/>
+
+  <!-- Column 3: Live OpenKrill Upstream APIs -->
+  <rect x="910" y="124" width="250" height="370" rx="14" fill="#0F172A" stroke="#334155" stroke-width="1.5"/>
+  <text x="932" y="156" fill="#F59E0B" font-size="12" font-weight="700" letter-spacing="1.2">3. UPSTREAM PROVIDERS</text>
+  <text x="932" y="180" fill="#F8FAFC" font-size="16" font-weight="700">Live OpenKrill Tool Mesh</text>
+
+  <rect x="930" y="200" width="210" height="52" rx="6" fill="#1E293B" stroke="#334155" stroke-width="1"/>
+  <text x="944" y="222" fill="#F8FAFC" font-size="12" font-weight="600">eu_duty_estimate</text>
+  <text x="944" y="240" fill="#94A3B8" font-size="10" font-family="monospace">/plugins/shop-duty/mcp</text>
+
+  <rect x="930" y="262" width="210" height="52" rx="6" fill="#1E293B" stroke="#334155" stroke-width="1"/>
+  <text x="944" y="284" fill="#F8FAFC" font-size="12" font-weight="600">find_tariff_codes</text>
+  <text x="944" y="302" fill="#94A3B8" font-size="10" font-family="monospace">/plugins/tariffs/mcp (USITC/UK)</text>
+
+  <rect x="930" y="324" width="210" height="52" rx="6" fill="#1E293B" stroke="#334155" stroke-width="1"/>
+  <text x="944" y="346" fill="#F8FAFC" font-size="12" font-weight="600">check_vat_number</text>
+  <text x="944" y="364" fill="#94A3B8" font-size="10" font-family="monospace">/plugins/eu-business/mcp (VIES)</text>
+
+  <rect x="930" y="386" width="210" height="86" rx="6" fill="#1E293B" stroke="#334155" stroke-width="1"/>
+  <text x="944" y="408" fill="#F8FAFC" font-size="12" font-weight="600">list_jobs &amp; get_app_reviews</text>
+  <text x="944" y="426" fill="#94A3B8" font-size="10" font-family="monospace">/v1/tools/job-boards/run</text>
+  <text x="944" y="442" fill="#94A3B8" font-size="10" font-family="monospace">/v1/tools/app-reviews/run</text>
+  <text x="944" y="460" fill="#34D399" font-size="10" font-family="monospace">Vault Key: 596131543c97023e</text>
+
+  <!-- Arrows Column 2 -> Bottom D1 & Admin -->
+  <line x1="490" y1="494" x2="490" y2="532" stroke="#F59E0B" stroke-width="2" marker-end="url(#arrowAmber)"/>
+  <line x1="710" y1="494" x2="710" y2="532" stroke="#38BDF8" stroke-width="2" marker-end="url(#arrowBlue)"/>
+
+  <!-- Bottom Left: Cloudflare D1 Relational Ledger -->
+  <rect x="40" y="538" width="540" height="114" rx="12" fill="#0F172A" stroke="#F59E0B" stroke-width="1.5"/>
+  <text x="64" y="566" fill="#F59E0B" font-size="12" font-weight="700" letter-spacing="1.1">4. CLOUDFLARE D1 SQL LEDGER (ATOMIC BATCH SETTLEMENT)</text>
+  <text x="64" y="590" fill="#F8FAFC" font-size="14" font-weight="600">4 Normalized Tables: organizations | agent_keys | audit_logs | receipts</text>
+  <text x="64" y="612" fill="#94A3B8" font-size="12">Every call executes an atomic D1 batch: increments spent_cents, writes an immutable audit</text>
+  <text x="64" y="630" fill="#94A3B8" font-size="12">row (aud_*), and persists a cryptographically signed receipt (rcpt_*) with wholesale/retail spread.</text>
+
+  <!-- Bottom Right: Admin Control Plane UI -->
+  <rect x="620" y="538" width="540" height="114" rx="12" fill="#0F172A" stroke="#38BDF8" stroke-width="1.5"/>
+  <text x="644" y="566" fill="#38BDF8" font-size="12" font-weight="700" letter-spacing="1.1">5. FINOPS OPERATOR CONSOLE (/admin)</text>
+  <text x="644" y="590" fill="#F8FAFC" font-size="14" font-weight="600">Keys &amp; Caps | Audit &amp; Receipt Ledger | Monetization Blueprint | Live Demo</text>
+  <text x="644" y="612" fill="#94A3B8" font-size="12">Real-time KPI strip, 1-click key rotation &amp; revocation, instant receipt signature verifier,</text>
+  <text x="644" y="630" fill="#94A3B8" font-size="12">and interactive 5-Step Governance Demo proving 200 OK, 403 Allowlist, and 402 Circuit Breaker.</text>
+</svg>

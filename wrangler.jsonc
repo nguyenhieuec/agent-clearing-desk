@@ -1,0 +1,20 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "agent-clearing-desk",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-22",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "clearing-desk",
+      "database_id": "78efd2d3-f032-4334-a6ba-511beea829a8",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "vars": {
+    "OPENKRILL_BASE_URL": "https://api.openkrill.app",
+    "DEFAULT_PRICE_CENTS": "5"
+  }
+}
