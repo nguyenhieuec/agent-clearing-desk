@@ -35,6 +35,10 @@ curl -s -D - -X POST $DESK/v1/tools/eu_duty_estimate/run -H "x-api-key: $KEY" -H
 curl -s -o /dev/null -w '%{http_code}\n' -X POST $DESK/v1/tools/get_app_reviews/run -H "x-api-key: $KEY" \
   -H 'content-type: application/json' -d '{"apps":["com.spotify.music"]}'
 
+# arguments that break the schema: 400 with the problems, nothing charged, no upstream call
+curl -s -X POST $DESK/v1/tools/check_vat_number/run -H "x-api-key: $KEY" -H 'content-type: application/json' \
+  -d '{"country":"IE","vatNumber":"1"}'
+
 # where the key stands
 curl -s $DESK/v1/usage -H "x-api-key: $KEY"
 
@@ -48,11 +52,13 @@ curl -s -o /dev/null -w '%{http_code}\n' $DESK/api/admin/keys
 git clone https://github.com/nguyenhieuec/agent-clearing-desk && cd agent-clearing-desk
 curl -s https://agent-clearing-desk.nguyenhieuec.workers.dev/.well-known/receipt-signing-key.json > public-key.json
 node scripts/verify-receipt.mjs ../receipt-call.json public-key.json --input ../args.json
-# {"valid":true,"checks":{"signature":true,"result_hash":true,"input_hash":true,"unsigned_view":true},...}
+# {"valid":true,"proves_answer":true,"checks":{"signature":true,"result_hash":true,"input_hash":true,"unsigned_view":true},...}
 ```
 
 The script checks the Ed25519 signature over `payload`, the SHA-256 of `result` against the signed `result_sha256`, the SHA-256 of your arguments against the signed `params_sha256`, and that the readable `unsigned_view` matches the signed `payload`.
 It exits 0 when every check passes and 1 when one fails.
+The hashes are over canonical JSON, so `args.json` may list its keys in any order.
+A file with only the receipt still checks the signature, but says `proves_answer: false`: it proves the charge, not the answer.
 
 Now change the signed amount and check again:
 
@@ -80,14 +86,16 @@ Add the desk as a Streamable HTTP MCP server with the sandbox key in a header:
 }
 ```
 
-`tools/list` shows 9 tools: 7 built-in governed tools with their price, plus the free `check_agent_balance` and `get_call_receipt`.
+`tools/list` shows 9 tools: 7 built-in governed tools, each with its price per successful call in the description, plus the free `check_agent_balance` and `get_call_receipt`.
+A `tools/call` result carries the answer and the whole signed receipt in `structuredContent.clearing.receipt`; save it and run `node scripts/verify-receipt.mjs mcp-result.json public-key.json --input args.json`.
+`get_call_receipt` returns a stored receipt with `signature_valid` checked on the desk.
 Tools an operator adds from another MCP server at run time appear in the same list.
 
 ## 5. Run the tests
 
 ```bash
 npm install
-npm test          # 29 tests on real SQLite with the production migrations
+npm test          # 39 tests on real SQLite with the production migrations
 npm run typecheck
 node scripts/run-e2e.mjs out.json   # live sandbox flow; the operator flow needs ADMIN_SECRET
 ```

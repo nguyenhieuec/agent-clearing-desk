@@ -1,4 +1,5 @@
 import type { JsonSchema, McpToolDefinition, Millicents } from './types.ts';
+import { mcToCents } from './money.ts';
 import schemas from './tool-schemas.json';
 
 /**
@@ -6,7 +7,17 @@ import schemas from './tool-schemas.json';
  * REST upstreams; each upstream keeps its own credentials, which agents never see.
  */
 export type UpstreamTarget =
-  | { kind: 'mcp'; upstream: string; url: string; tool: string; auth: 'openkrill' | 'none' }
+  | {
+      kind: 'mcp';
+      upstream: string;
+      url: string;
+      tool: string;
+      auth: 'openkrill' | 'none' | 'header';
+      /** An operator's credential header for this upstream, sealed (see sealed-secret.ts). */
+      authHeader?: { name: string; sealed: string };
+      /** Run initialize first and keep the session id: tools added at run time do. */
+      handshake?: boolean;
+    }
   | { kind: 'rest'; upstream: string; tool: string };
 
 export interface GovernedTool {
@@ -138,7 +149,7 @@ export const DESK_TOOLS: McpToolDefinition[] = [
     name: 'get_call_receipt',
     title: 'Get a signed receipt',
     description:
-      'Fetch one of my signed clearing receipts by id, with its Ed25519 signature check. Free.',
+      'Fetch one of my signed clearing receipts by id; the desk also checks its Ed25519 signature. Free.',
     inputSchema: {
       type: 'object',
       properties: { receipt_id: { type: 'string', description: 'Receipt id, rcpt_...' } },
@@ -150,7 +161,13 @@ export const DESK_TOOLS: McpToolDefinition[] = [
 /** MCP tools/list entries for governed tools plus the free desk tools. */
 export function mcpToolList(tools: GovernedTool[]): McpToolDefinition[] {
   return [
-    ...tools.map(t => ({ name: t.name, title: t.title, description: t.description, inputSchema: t.inputSchema })),
+    ...tools.map(t => ({
+      name: t.name,
+      title: t.title,
+      // Agents read the description, so the list price is stated there; a key may have its own price.
+      description: `${t.description} Price per successful call, in US cents: ${mcToCents(t.priceMc)}. Failed calls are free.`,
+      inputSchema: t.inputSchema,
+    })),
     ...DESK_TOOLS,
   ];
 }

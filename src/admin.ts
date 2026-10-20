@@ -130,7 +130,14 @@ function toolView(t: GovernedTool) {
     name: t.name,
     upstream: t.target.upstream,
     custom: t.custom,
-    ...(t.custom && t.target.kind === 'mcp' ? { mcp_url: t.target.url, upstream_tool: t.target.tool } : {}),
+    ...(t.custom && t.target.kind === 'mcp'
+      ? {
+          mcp_url: t.target.url,
+          upstream_tool: t.target.tool,
+          // Only the header name is shown; the credential itself stays sealed in D1.
+          upstream_auth: t.target.authHeader ? `${t.target.authHeader.name} header, sealed` : 'none',
+        }
+      : {}),
     cost_cents: mcToCents(t.costMc),
     price_cents: mcToCents(t.priceMc),
     margin_cents: mcToCents(t.priceMc - t.costMc),
@@ -146,6 +153,15 @@ interface ToolRequest {
   timeoutMs?: unknown;
   title?: unknown;
   description?: unknown;
+  authHeader?: unknown;
+}
+
+/** The optional {name, value} credential header for a paid upstream; undefined when not given. */
+function parseAuthHeader(raw: unknown): { name: string; value: string } | undefined | string {
+  if (raw === undefined || raw === null) return undefined;
+  const h = raw as { name?: unknown; value?: unknown };
+  if (typeof h.name !== 'string' || typeof h.value !== 'string') return 'authHeader must be {name, value}';
+  return { name: h.name.toLowerCase(), value: h.value };
 }
 
 const isCents = (v: unknown): v is number => typeof v === 'number' && v >= 0;
@@ -159,6 +175,8 @@ async function handleCreateTool(request: Request, env: Env): Promise<Response> {
   if (!isCents(body.costCents) || !isCents(body.priceCents)) return bad('costCents and priceCents must be numbers >= 0');
   const timeoutMs = typeof body.timeoutMs === 'number' ? body.timeoutMs : 15_000;
   if (timeoutMs < 1000 || timeoutMs > 60_000) return bad('timeoutMs must be between 1000 and 60000');
+  const authHeader = parseAuthHeader(body.authHeader);
+  if (typeof authHeader === 'string') return bad(authHeader);
   const created = await registerMcpTool(env, {
     name: body.name,
     mcpUrl: body.mcpUrl,
@@ -168,6 +186,7 @@ async function handleCreateTool(request: Request, env: Env): Promise<Response> {
     timeoutMs,
     title: typeof body.title === 'string' ? body.title : undefined,
     description: typeof body.description === 'string' ? body.description : undefined,
+    authHeader,
   });
   return typeof created === 'string' ? bad(created) : jsonResponse(toolView(created), 201);
 }
@@ -272,11 +291,11 @@ export async function handleDemoKeyRequest(request: Request, env: Env): Promise<
       429
     );
   }
-  const stamp = new Date().toISOString().slice(11, 19);
-  const org = await createOrganization(env.DB, `Sandbox ${stamp}`, 'sandbox@agent-clearing-desk.invalid');
+  // The daily slot number tells sandbox organizations apart in the console, even within one second.
+  const org = await createOrganization(env.DB, `Sandbox #${slot}, ${new Date().toISOString().slice(5, 10)}`, 'sandbox@agent-clearing-desk.invalid');
   const created = await createAgentKey(env.DB, {
     orgId: org.id,
-    name: `sandbox-${stamp}`,
+    name: `sandbox #${slot}`,
     budgetMc: centsToMc(SANDBOX_KEY.budgetCents),
     allowlist: SANDBOX_KEY.allowlist,
     expiresAt: Date.now() + SANDBOX_KEY.ttlMinutes * 60_000,

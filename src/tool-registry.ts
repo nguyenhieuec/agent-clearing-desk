@@ -1,6 +1,7 @@
 import type { Env, JsonSchema, Millicents } from './types.ts';
 import { BUILTIN_TOOLS, DESK_TOOLS, findBuiltinTool, type GovernedTool } from './tools.ts';
 import { listMcpServerTools } from './upstream.ts';
+import { sealSecret } from './sealed-secret.ts';
 
 interface CustomToolRow {
   name: string;
@@ -15,16 +16,30 @@ interface CustomToolRow {
   timeout_ms: number;
   status: 'active' | 'disabled';
   created_at: number;
+  auth_header_name: string | null;
+  auth_header_sealed: string | null;
 }
 
 const TOOL_NAME = /^[a-z][a-z0-9_]{2,63}$/;
+/** Credential headers an operator may set: Authorization or a vendor x- header. */
+const AUTH_HEADER = /^(authorization|x-[a-z0-9-]{1,40})$/;
 
 function fromRow(row: CustomToolRow): GovernedTool {
   return {
     name: row.name,
     title: row.title,
     description: row.description,
-    target: { kind: 'mcp', upstream: row.upstream, url: row.mcp_url, tool: row.upstream_tool, auth: 'none' },
+    target: {
+      kind: 'mcp',
+      upstream: row.upstream,
+      url: row.mcp_url,
+      tool: row.upstream_tool,
+      auth: row.auth_header_sealed ? 'header' : 'none',
+      ...(row.auth_header_name && row.auth_header_sealed
+        ? { authHeader: { name: row.auth_header_name, sealed: row.auth_header_sealed } }
+        : {}),
+      handshake: true,
+    },
     costMc: row.cost_mc,
     priceMc: row.price_mc,
     timeoutMs: row.timeout_ms,
@@ -59,6 +74,15 @@ export interface NewMcpTool {
   timeoutMs: number;
   title?: string;
   description?: string;
+  /** Credential for a paid upstream; stored sealed, never returned. */
+  authHeader?: { name: string; value: string };
+}
+
+function checkAuthHeader(env: Env, auth: NewMcpTool['authHeader']): string | null {
+  if (!auth) return null;
+  if (!AUTH_HEADER.test(auth.name)) return 'authHeader.name must be authorization or an x- header, in lower case';
+  if (!auth.value) return 'authHeader.value is required';
+  return env.UPSTREAM_SECRET_KEY ? null : 'this desk has no UPSTREAM_SECRET_KEY, so it cannot store an upstream credential';
 }
 
 function checkNewTool(input: NewMcpTool): string | null {
@@ -78,11 +102,11 @@ function checkNewTool(input: NewMcpTool): string | null {
  * so the schema agents see and the argument check both come from the upstream, not from the operator.
  */
 export async function registerMcpTool(env: Env, input: NewMcpTool): Promise<GovernedTool | string> {
-  const invalid = checkNewTool(input);
+  const invalid = checkNewTool(input) ?? checkAuthHeader(env, input.authHeader);
   if (invalid) return invalid;
   let listed: Awaited<ReturnType<typeof listMcpServerTools>>;
   try {
-    listed = await listMcpServerTools(input.mcpUrl);
+    listed = await listMcpServerTools(input.mcpUrl, input.authHeader);
   } catch (err) {
     return `could not read tools/list from ${input.mcpUrl}: ${String(err instanceof Error ? err.message : err)}`;
   }
@@ -101,13 +125,18 @@ export async function registerMcpTool(env: Env, input: NewMcpTool): Promise<Gove
     timeout_ms: input.timeoutMs,
     status: 'active',
     created_at: Date.now(),
+    auth_header_name: input.authHeader?.name ?? null,
+    auth_header_sealed: input.authHeader
+      ? await sealSecret(env.UPSTREAM_SECRET_KEY as string, input.name, input.authHeader.value)
+      : null,
   };
   const { meta } = await env.DB.prepare(
     `INSERT OR IGNORE INTO custom_tools (name, title, description, upstream, mcp_url, upstream_tool, input_schema,
-       cost_mc, price_mc, timeout_ms, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?)`
+       cost_mc, price_mc, timeout_ms, status, created_at, auth_header_name, auth_header_sealed)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?)`
   )
     .bind(row.name, row.title, row.description, row.upstream, row.mcp_url, row.upstream_tool, row.input_schema,
-      row.cost_mc, row.price_mc, row.timeout_ms, row.created_at)
+      row.cost_mc, row.price_mc, row.timeout_ms, row.created_at, row.auth_header_name, row.auth_header_sealed)
     .run();
   return meta.changes === 1 ? fromRow(row) : `a tool named ${input.name} already exists`;
 }

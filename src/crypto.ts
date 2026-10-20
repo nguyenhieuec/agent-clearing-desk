@@ -6,13 +6,13 @@ function toHex(bytes: ArrayBuffer | Uint8Array): string {
   return Array.from(new Uint8Array(bytes), b => b.toString(16).padStart(2, '0')).join('');
 }
 
-function toBase64Url(bytes: ArrayBuffer): string {
+export function toBase64Url(bytes: ArrayBuffer): string {
   let bin = '';
   for (const b of new Uint8Array(bytes)) bin += String.fromCharCode(b);
   return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-function fromBase64Url(text: string): Uint8Array {
+export function fromBase64Url(text: string): Uint8Array {
   const b64 = text.replace(/-/g, '+').replace(/_/g, '/');
   const bin = atob(b64 + '='.repeat((4 - (b64.length % 4)) % 4));
   return Uint8Array.from(bin, c => c.charCodeAt(0));
@@ -91,6 +91,21 @@ function signingKey(secret: string): Promise<LoadedSigningKey> {
 
 export async function publicSigningKey(secret: string): Promise<PublicSigningKey> {
   return (await signingKey(secret)).publicJwk;
+}
+
+/**
+ * JSON with object keys sorted at every level. The input and result hashes in a receipt
+ * are SHA-256 over this form, so the same arguments hash the same in any key order.
+ */
+export function canonicalJson(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(v => canonicalJson(v ?? null)).join(',')}]`;
+  if (value && typeof value === 'object') {
+    const entries = Object.entries(value as Record<string, unknown>)
+      .filter(([, v]) => v !== undefined)
+      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+    return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${canonicalJson(v)}`).join(',')}}`;
+  }
+  return JSON.stringify(value ?? null);
 }
 
 /** Fixed key order, so the same receipt always serialises to the same bytes. */

@@ -166,8 +166,19 @@ function tamper(payload) {
   return { text: JSON.stringify(obj), before, after: obj.amount_mc };
 }
 
-async function sha256Hex(value) {
-  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify(value)));
+/** JSON with object keys sorted at every level: receipts from v4 on hash this form. */
+function canonicalJson(value) {
+  if (Array.isArray(value)) return `[${value.map(v => canonicalJson(v ?? null)).join(',')}]`;
+  if (value && typeof value === 'object') {
+    const entries = Object.entries(value).filter(([, v]) => v !== undefined).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+    return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${canonicalJson(v)}`).join(',')}}`;
+  }
+  return JSON.stringify(value ?? null);
+}
+
+async function sha256Hex(value, version) {
+  const text = version === 'cd-receipt-v3' ? JSON.stringify(value) : canonicalJson(value);
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
   return [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
@@ -176,7 +187,8 @@ async function verifyReceipt(receipt, result) {
   const original = await verifyPayload(receipt.payload, receipt.signature);
   const t = tamper(receipt.payload);
   const tampered = await verifyPayload(t.text, receipt.signature);
-  const resultMatch = result === undefined ? null : JSON.parse(receipt.payload).result_sha256 === (await sha256Hex(result));
+  const signed = JSON.parse(receipt.payload);
+  const resultMatch = result === undefined ? null : signed.result_sha256 === (await sha256Hex(result, signed.v));
   return { original: original.ok, tampered: tampered.ok, resultMatch, kid: original.kid, before: t.before, after: t.after };
 }
 
@@ -807,7 +819,8 @@ function renderKeys(keys) {
 
 function periodNote(k) {
   if (!k.budget_period || k.budget_period === 'none') return null;
-  return el('div', { class: 'faint', text: `${k.budget_period}, resets ${when(Date.parse(k.resets_at))}` });
+  const at = new Date(k.resets_at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  return el('div', { class: 'faint period-note', text: `${k.budget_period}, resets ${at}` });
 }
 
 function orgName(id) {
@@ -949,7 +962,7 @@ function argsCell(a) {
 function toolSource(t) {
   if (!t.custom) return el('span', { class: 'faint', text: 'built in' });
   return el('div', { class: 'actions' },
-    el('span', { class: 'faint mono', text: `added: ${t.upstream_tool}` }),
+    el('span', { class: 'faint mono', text: `added: ${t.upstream_tool}, auth ${t.upstream_auth}` }),
     el('button', { class: 'btn tiny danger', type: 'button', text: 'Disable', onclick: () => disableTool(t) }));
 }
 
@@ -968,6 +981,8 @@ async function createTool(e) {
     name: $('ct-name').value.trim(), mcpUrl: $('ct-url').value.trim(), upstreamTool: $('ct-upstream').value.trim(),
     costCents: Number($('ct-cost').value), priceCents: Number($('ct-price').value),
   };
+  const authName = $('ct-auth-name').value.trim().toLowerCase();
+  if (authName) body.authHeader = { name: authName, value: $('ct-auth-value').value };
   $('tool-hint').textContent = 'Reading the server\'s tools/list...';
   const r = await admin('POST', '/api/admin/tools', body);
   if (r.status !== 201) { $('tool-hint').textContent = adminFailure(r); return; }

@@ -1,8 +1,8 @@
 {
   "base_url": "https://agent-clearing-desk.nguyenhieuec.workers.dev",
-  "started": "2026-10-20T17:15:38.402Z",
-  "finished": "2026-10-20T17:16:14.076Z",
-  "passed": 31,
+  "started": "2026-10-20T17:45:36.074Z",
+  "finished": "2026-10-20T17:46:21.571Z",
+  "passed": 40,
   "failed": 0,
   "steps": [
     {
@@ -10,12 +10,12 @@
       "pass": true,
       "status": 200,
       "expected": 200,
-      "ms": 666,
+      "ms": 706,
       "headers": {},
       "body": {
         "status": "ok",
         "service": "agent-clearing-desk",
-        "time": 1792516539008
+        "time": 1792518336714
       }
     },
     {
@@ -23,7 +23,7 @@
       "pass": true,
       "status": 200,
       "expected": 200,
-      "ms": 118,
+      "ms": 125,
       "headers": {},
       "body": {
         "keys": [
@@ -43,7 +43,7 @@
       "pass": true,
       "status": 401,
       "expected": 401,
-      "ms": 83,
+      "ms": 126,
       "headers": {},
       "body": {
         "error": {
@@ -57,11 +57,11 @@
       "pass": true,
       "status": 201,
       "expected": 201,
-      "ms": 552,
+      "ms": 401,
       "headers": {},
       "body": {
         "key": "cd_live_…masked",
-        "key_id": "key_6d570aa1752c831f",
+        "key_id": "key_11a66bb0804d6f74",
         "budget_period": "none",
         "resets_at": null,
         "budget_cents": 2,
@@ -69,18 +69,18 @@
         "remaining_cents": 2,
         "remaining_usd": "$0.02000",
         "key_prefix": "cd_live_…masked",
-        "org_id": "org_ed78cc27e5015aa6",
-        "name": "sandbox-17:15:39",
+        "org_id": "org_31a63cf7c033bc8a",
+        "name": "sandbox-17:45:37",
         "allowlist": [
           "eu_duty_estimate",
           "check_vat_number"
         ],
         "price_overrides_cents": {},
         "status": "active",
-        "expires_at": 1792520139722,
-        "created_at": 1792516539722,
-        "updated_at": 1792516539722,
-        "sandbox_keys_left_today": 99
+        "expires_at": 1792521937378,
+        "created_at": 1792518337378,
+        "updated_at": 1792518337378,
+        "sandbox_keys_left_today": 89
       }
     },
     {
@@ -88,28 +88,28 @@
       "pass": true,
       "status": 200,
       "expected": 200,
-      "ms": 1065,
+      "ms": 874,
       "headers": {
         "x-clearing-price-cents": "1",
-        "x-clearing-receipt": "rcpt_e3e51ac87ec3d1fcc6fe9bb1",
+        "x-clearing-receipt": "rcpt_d956a8c86050c1df04352a77",
         "x-clearing-remaining-budget-cents": "1",
-        "x-clearing-signature": "FKZwvp7jWr1zcZcQ8kUbTn52yI1Vy-TVRK--f2DzN0K1u9fP3Gp20_2Tn_Q4yUkUsEjAIJmNJj5AfZOjoxx6AA"
+        "x-clearing-signature": "hbHHtAgfDrFVPbnEVPD5ARdqYG4ERSKz5oP3OIyyCavt_uPox2D8qARs_cXX41UhTCZQLfeOlFsKFFKwo9YZCQ"
       },
       "body": {
         "result": "{\"as_of\":\"2026-07-01\",\"source\":{\"name\":\"EU Official Journal: Council Regulation (EU) 2026/382 of 11 February 2026\",\"url\":\"http://data.europa.eu/eli/reg/2026/382/oj\"},\"legal_basis\":[{\"instrument\":\"Council Regulation (EU) 2026/382 of 11 February 2026\",\"use\":\"Article 2: EUR 3 customs duty per item in a consignment of intrinsic value up to EUR 150 that is VAT-exempt under the Import One-Stop Shop (Art",
         "receipt": {
-          "receipt_id": "rcpt_e3e51ac87ec3d1fcc6fe9bb1",
-          "payload": "{\"v\":\"cd-receipt-v3\",\"receipt_id\":\"rcpt_e3e51ac87ec3d1fcc6fe9bb1\",\"audit_log_id\":\"aud_e3e51ac87ec3d1fcc6fe9bb1\",\"org_id\":\"org_ed78cc27e5015aa6\",\"key_id\":\"key_6d570aa1752c831f\",\"tool\":\"eu_duty_estimate\",\"upstream\":\"openkrill\",\"protocol\":\"http\",\"outcome\":\"success\",\"http_status\":200,\"amount_mc\":1000,\"cost_mc\":500,\"currency\":\"USD\",\"params_sha256\":\"e7bbf8cecfcd83e84be7a3bb8571e3652e3540e1cc04c388e2780d569be72295\",\"result_sha256\":\"5912e83ac7cc5280e69653fb028c14ea9fa4f091056c99a69f74cbb1b29708bd\",\"issued_at\":1792516540763}",
-          "signature": "FKZwvp7jWr1zcZcQ8kUbTn52yI1Vy-TVRK--f2DzN0K1u9fP3Gp20_2Tn_Q4yUkUsEjAIJmNJj5AfZOjoxx6AA",
+          "receipt_id": "rcpt_d956a8c86050c1df04352a77",
+          "payload": "{\"v\":\"cd-receipt-v4\",\"receipt_id\":\"rcpt_d956a8c86050c1df04352a77\",\"audit_log_id\":\"aud_d956a8c86050c1df04352a77\",\"org_id\":\"org_31a63cf7c033bc8a\",\"key_id\":\"key_11a66bb0804d6f74\",\"tool\":\"eu_duty_estimate\",\"upstream\":\"openkrill\",\"protocol\":\"http\",\"outcome\":\"success\",\"http_status\":200,\"amount_mc\":1000,\"cost_mc\":500,\"currency\":\"USD\",\"params_sha256\":\"fc00a1314204eb4a3be4129b57b0c443397b597974b22e2e50d14c5584c4b7b5\",\"result_sha256\":\"8c8416fd313c7556f41155509942beb31c44fa7bd31f71a5fe36875e7c83511f\",\"issued_at\":1792518338196}",
+          "signature": "hbHHtAgfDrFVPbnEVPD5ARdqYG4ERSKz5oP3OIyyCavt_uPox2D8qARs_cXX41UhTCZQLfeOlFsKFFKwo9YZCQ",
           "alg": "Ed25519",
           "key_fingerprint": "0a076341b06e39ac",
           "public_key_url": "/.well-known/receipt-signing-key.json",
           "unsigned_view": {
-            "v": "cd-receipt-v3",
-            "receipt_id": "rcpt_e3e51ac87ec3d1fcc6fe9bb1",
-            "audit_log_id": "aud_e3e51ac87ec3d1fcc6fe9bb1",
-            "org_id": "org_ed78cc27e5015aa6",
-            "key_id": "key_6d570aa1752c831f",
+            "v": "cd-receipt-v4",
+            "receipt_id": "rcpt_d956a8c86050c1df04352a77",
+            "audit_log_id": "aud_d956a8c86050c1df04352a77",
+            "org_id": "org_31a63cf7c033bc8a",
+            "key_id": "key_11a66bb0804d6f74",
             "tool": "eu_duty_estimate",
             "upstream": "openkrill",
             "protocol": "http",
@@ -118,13 +118,13 @@
             "amount_mc": 1000,
             "cost_mc": 500,
             "currency": "USD",
-            "params_sha256": "e7bbf8cecfcd83e84be7a3bb8571e3652e3540e1cc04c388e2780d569be72295",
-            "result_sha256": "5912e83ac7cc5280e69653fb028c14ea9fa4f091056c99a69f74cbb1b29708bd",
-            "issued_at": 1792516540763
+            "params_sha256": "fc00a1314204eb4a3be4129b57b0c443397b597974b22e2e50d14c5584c4b7b5",
+            "result_sha256": "8c8416fd313c7556f41155509942beb31c44fa7bd31f71a5fe36875e7c83511f",
+            "issued_at": 1792518338196
           }
         },
         "balance": {
-          "key_id": "key_6d570aa1752c831f",
+          "key_id": "key_11a66bb0804d6f74",
           "budget_period": "none",
           "resets_at": null,
           "budget_cents": 2,
@@ -139,38 +139,38 @@
       "pass": true,
       "status": 403,
       "expected": 403,
-      "ms": 163,
+      "ms": 180,
       "headers": {
         "x-clearing-price-cents": "0",
-        "x-clearing-receipt": "rcpt_f5b634dbecca56fc83e14e1f",
+        "x-clearing-receipt": "rcpt_845fcf6201a617a4f9a1c96a",
         "x-clearing-remaining-budget-cents": "1",
-        "x-clearing-signature": "ooRFPJE0hdM2vrPjJ8nYDn8IGrr2plKdmt8qcH-3FjNYU3i0tRwe_QHIfZHxKKTgc7UI9XyqFdd7BC5bX86DCw"
+        "x-clearing-signature": "2j-AwczShcw-kc6JZKOVFe13x3RnHlCa-Lk7AyXzVveosCwEIYzxTFBbP0DshKZsuF73NqLJWWDTQZaGcsBoAg"
       },
       "body": {
         "error": {
           "code": "tool_not_allowed",
           "message": "Tool 'get_app_reviews' is not on this agent key's allowlist. Nothing was charged.",
-          "key_id": "key_6d570aa1752c831f",
+          "key_id": "key_11a66bb0804d6f74",
           "tool_name": "get_app_reviews",
           "allowlist": [
             "eu_duty_estimate",
             "check_vat_number"
           ],
-          "receipt_id": "rcpt_f5b634dbecca56fc83e14e1f"
+          "receipt_id": "rcpt_845fcf6201a617a4f9a1c96a"
         },
         "receipt": {
-          "receipt_id": "rcpt_f5b634dbecca56fc83e14e1f",
-          "payload": "{\"v\":\"cd-receipt-v3\",\"receipt_id\":\"rcpt_f5b634dbecca56fc83e14e1f\",\"audit_log_id\":\"aud_f5b634dbecca56fc83e14e1f\",\"org_id\":\"org_ed78cc27e5015aa6\",\"key_id\":\"key_6d570aa1752c831f\",\"tool\":\"get_app_reviews\",\"upstream\":\"openkrill\",\"protocol\":\"http\",\"outcome\":\"refused_allowlist\",\"http_status\":403,\"amount_mc\":0,\"cost_mc\":0,\"currency\":\"USD\",\"params_sha256\":\"52f574f83690501200dda00a8f1fa7e5717118b6485784ebc2d6e2a486277a0f\",\"result_sha256\":null,\"issued_at\":1792516540978}",
-          "signature": "ooRFPJE0hdM2vrPjJ8nYDn8IGrr2plKdmt8qcH-3FjNYU3i0tRwe_QHIfZHxKKTgc7UI9XyqFdd7BC5bX86DCw",
+          "receipt_id": "rcpt_845fcf6201a617a4f9a1c96a",
+          "payload": "{\"v\":\"cd-receipt-v4\",\"receipt_id\":\"rcpt_845fcf6201a617a4f9a1c96a\",\"audit_log_id\":\"aud_845fcf6201a617a4f9a1c96a\",\"org_id\":\"org_31a63cf7c033bc8a\",\"key_id\":\"key_11a66bb0804d6f74\",\"tool\":\"get_app_reviews\",\"upstream\":\"openkrill\",\"protocol\":\"http\",\"outcome\":\"refused_allowlist\",\"http_status\":403,\"amount_mc\":0,\"cost_mc\":0,\"currency\":\"USD\",\"params_sha256\":\"52f574f83690501200dda00a8f1fa7e5717118b6485784ebc2d6e2a486277a0f\",\"result_sha256\":null,\"issued_at\":1792518338418}",
+          "signature": "2j-AwczShcw-kc6JZKOVFe13x3RnHlCa-Lk7AyXzVveosCwEIYzxTFBbP0DshKZsuF73NqLJWWDTQZaGcsBoAg",
           "alg": "Ed25519",
           "key_fingerprint": "0a076341b06e39ac",
           "public_key_url": "/.well-known/receipt-signing-key.json",
           "unsigned_view": {
-            "v": "cd-receipt-v3",
-            "receipt_id": "rcpt_f5b634dbecca56fc83e14e1f",
-            "audit_log_id": "aud_f5b634dbecca56fc83e14e1f",
-            "org_id": "org_ed78cc27e5015aa6",
-            "key_id": "key_6d570aa1752c831f",
+            "v": "cd-receipt-v4",
+            "receipt_id": "rcpt_845fcf6201a617a4f9a1c96a",
+            "audit_log_id": "aud_845fcf6201a617a4f9a1c96a",
+            "org_id": "org_31a63cf7c033bc8a",
+            "key_id": "key_11a66bb0804d6f74",
             "tool": "get_app_reviews",
             "upstream": "openkrill",
             "protocol": "http",
@@ -181,11 +181,11 @@
             "currency": "USD",
             "params_sha256": "52f574f83690501200dda00a8f1fa7e5717118b6485784ebc2d6e2a486277a0f",
             "result_sha256": null,
-            "issued_at": 1792516540978
+            "issued_at": 1792518338418
           }
         },
         "balance": {
-          "key_id": "key_6d570aa1752c831f",
+          "key_id": "key_11a66bb0804d6f74",
           "budget_period": "none",
           "resets_at": null,
           "budget_cents": 2,
@@ -200,28 +200,28 @@
       "pass": true,
       "status": 200,
       "expected": 200,
-      "ms": 731,
+      "ms": 1075,
       "headers": {
         "x-clearing-price-cents": "1",
-        "x-clearing-receipt": "rcpt_d11c7d842326b400c2c3bfa5",
+        "x-clearing-receipt": "rcpt_6ae62b4697db7961ace8c0a9",
         "x-clearing-remaining-budget-cents": "0",
-        "x-clearing-signature": "_HZ14HvbWFAqAMVvaiFCF9u4fTpbP2U-06w15-6ZJZ9ZB59gKReFa--H6MRcr_emXw9q27mPtuBwN7e17mjMBg"
+        "x-clearing-signature": "e1_ci375Tos39ifg3IxEaIyuXNsas4fn7hYTyDFE2ATOabuRpgwG2lPwHkKOHUejvCnjqfYaLpZKOWH0qzIrDw"
       },
       "body": {
         "result": "{\"as_of\":\"2026-10-20T16:51:46.160Z\",\"country\":\"IE\",\"vatNumber\":\"6388047V\",\"valid\":true,\"checkedAt\":\"2026-10-20T16:51:46.140Z\",\"name\":\"GOOGLE IRELAND LIMITED\",\"address\":\"3RD FLOOR, GORDON HOUSE, BARROW STREET, DUBLIN 4\",\"notice\":\"A valid result means the number is registered for VAT in that member state, as the member state's own register reports it on the date shown. It does not say the business i",
         "receipt": {
-          "receipt_id": "rcpt_d11c7d842326b400c2c3bfa5",
-          "payload": "{\"v\":\"cd-receipt-v3\",\"receipt_id\":\"rcpt_d11c7d842326b400c2c3bfa5\",\"audit_log_id\":\"aud_d11c7d842326b400c2c3bfa5\",\"org_id\":\"org_ed78cc27e5015aa6\",\"key_id\":\"key_6d570aa1752c831f\",\"tool\":\"check_vat_number\",\"upstream\":\"openkrill\",\"protocol\":\"http\",\"outcome\":\"success\",\"http_status\":200,\"amount_mc\":1000,\"cost_mc\":500,\"currency\":\"USD\",\"params_sha256\":\"220587e5ea0f963384363a612dcb15366d57f0b541a9ade913a56c85f4564c5e\",\"result_sha256\":\"bce1f1779023a28e5c7d9b8251df74f5face4e9a31afcef6cb272b8e6e220682\",\"issued_at\":1792516541686}",
-          "signature": "_HZ14HvbWFAqAMVvaiFCF9u4fTpbP2U-06w15-6ZJZ9ZB59gKReFa--H6MRcr_emXw9q27mPtuBwN7e17mjMBg",
+          "receipt_id": "rcpt_6ae62b4697db7961ace8c0a9",
+          "payload": "{\"v\":\"cd-receipt-v4\",\"receipt_id\":\"rcpt_6ae62b4697db7961ace8c0a9\",\"audit_log_id\":\"aud_6ae62b4697db7961ace8c0a9\",\"org_id\":\"org_31a63cf7c033bc8a\",\"key_id\":\"key_11a66bb0804d6f74\",\"tool\":\"check_vat_number\",\"upstream\":\"openkrill\",\"protocol\":\"http\",\"outcome\":\"success\",\"http_status\":200,\"amount_mc\":1000,\"cost_mc\":500,\"currency\":\"USD\",\"params_sha256\":\"220587e5ea0f963384363a612dcb15366d57f0b541a9ade913a56c85f4564c5e\",\"result_sha256\":\"54c6cf7a4415bfca611391e2b8d04401f9e630063ed7dced39c0adb9e85c7b8e\",\"issued_at\":1792518339184}",
+          "signature": "e1_ci375Tos39ifg3IxEaIyuXNsas4fn7hYTyDFE2ATOabuRpgwG2lPwHkKOHUejvCnjqfYaLpZKOWH0qzIrDw",
           "alg": "Ed25519",
           "key_fingerprint": "0a076341b06e39ac",
           "public_key_url": "/.well-known/receipt-signing-key.json",
           "unsigned_view": {
-            "v": "cd-receipt-v3",
-            "receipt_id": "rcpt_d11c7d842326b400c2c3bfa5",
-            "audit_log_id": "aud_d11c7d842326b400c2c3bfa5",
-            "org_id": "org_ed78cc27e5015aa6",
-            "key_id": "key_6d570aa1752c831f",
+            "v": "cd-receipt-v4",
+            "receipt_id": "rcpt_6ae62b4697db7961ace8c0a9",
+            "audit_log_id": "aud_6ae62b4697db7961ace8c0a9",
+            "org_id": "org_31a63cf7c033bc8a",
+            "key_id": "key_11a66bb0804d6f74",
             "tool": "check_vat_number",
             "upstream": "openkrill",
             "protocol": "http",
@@ -231,12 +231,12 @@
             "cost_mc": 500,
             "currency": "USD",
             "params_sha256": "220587e5ea0f963384363a612dcb15366d57f0b541a9ade913a56c85f4564c5e",
-            "result_sha256": "bce1f1779023a28e5c7d9b8251df74f5face4e9a31afcef6cb272b8e6e220682",
-            "issued_at": 1792516541686
+            "result_sha256": "54c6cf7a4415bfca611391e2b8d04401f9e630063ed7dced39c0adb9e85c7b8e",
+            "issued_at": 1792518339184
           }
         },
         "balance": {
-          "key_id": "key_6d570aa1752c831f",
+          "key_id": "key_11a66bb0804d6f74",
           "budget_period": "none",
           "resets_at": null,
           "budget_cents": 2,
@@ -251,18 +251,18 @@
       "pass": true,
       "status": 402,
       "expected": 402,
-      "ms": 167,
+      "ms": 209,
       "headers": {
         "x-clearing-price-cents": "0",
-        "x-clearing-receipt": "rcpt_369de05144dc050afbfaac93",
+        "x-clearing-receipt": "rcpt_1d37afcfd85ea55ecce8b10f",
         "x-clearing-remaining-budget-cents": "0",
-        "x-clearing-signature": "0endC0BqcJA7Yt6EqrrtEf78eRMzjSaf_gMDYQOaa8RY-1AE-6VNE_BKT-auYWtBezttxowkEDEH8ApwGvy-Dw"
+        "x-clearing-signature": "ecPJKaey5oUEcpOFmqFf_f595qIrfrPZXFIlF1dyqhCrWDyjEkWTNubKd6iUbYP4jgwRrnECuFhAApbE6_FjBw"
       },
       "body": {
         "error": {
           "code": "budget_exceeded",
           "message": "Budget exceeded: $0.00000 left, eu_duty_estimate costs $0.01000. Stop calling paid tools with this key.",
-          "key_id": "key_6d570aa1752c831f",
+          "key_id": "key_11a66bb0804d6f74",
           "budget_period": "none",
           "resets_at": null,
           "budget_cents": 2,
@@ -271,21 +271,21 @@
           "remaining_usd": "$0.00000",
           "tool_name": "eu_duty_estimate",
           "call_price_cents": 1,
-          "receipt_id": "rcpt_369de05144dc050afbfaac93"
+          "receipt_id": "rcpt_1d37afcfd85ea55ecce8b10f"
         },
         "receipt": {
-          "receipt_id": "rcpt_369de05144dc050afbfaac93",
-          "payload": "{\"v\":\"cd-receipt-v3\",\"receipt_id\":\"rcpt_369de05144dc050afbfaac93\",\"audit_log_id\":\"aud_369de05144dc050afbfaac93\",\"org_id\":\"org_ed78cc27e5015aa6\",\"key_id\":\"key_6d570aa1752c831f\",\"tool\":\"eu_duty_estimate\",\"upstream\":\"openkrill\",\"protocol\":\"http\",\"outcome\":\"refused_budget\",\"http_status\":402,\"amount_mc\":0,\"cost_mc\":0,\"currency\":\"USD\",\"params_sha256\":\"e7bbf8cecfcd83e84be7a3bb8571e3652e3540e1cc04c388e2780d569be72295\",\"result_sha256\":null,\"issued_at\":1792516541873}",
-          "signature": "0endC0BqcJA7Yt6EqrrtEf78eRMzjSaf_gMDYQOaa8RY-1AE-6VNE_BKT-auYWtBezttxowkEDEH8ApwGvy-Dw",
+          "receipt_id": "rcpt_1d37afcfd85ea55ecce8b10f",
+          "payload": "{\"v\":\"cd-receipt-v4\",\"receipt_id\":\"rcpt_1d37afcfd85ea55ecce8b10f\",\"audit_log_id\":\"aud_1d37afcfd85ea55ecce8b10f\",\"org_id\":\"org_31a63cf7c033bc8a\",\"key_id\":\"key_11a66bb0804d6f74\",\"tool\":\"eu_duty_estimate\",\"upstream\":\"openkrill\",\"protocol\":\"http\",\"outcome\":\"refused_budget\",\"http_status\":402,\"amount_mc\":0,\"cost_mc\":0,\"currency\":\"USD\",\"params_sha256\":\"fc00a1314204eb4a3be4129b57b0c443397b597974b22e2e50d14c5584c4b7b5\",\"result_sha256\":null,\"issued_at\":1792518339692}",
+          "signature": "ecPJKaey5oUEcpOFmqFf_f595qIrfrPZXFIlF1dyqhCrWDyjEkWTNubKd6iUbYP4jgwRrnECuFhAApbE6_FjBw",
           "alg": "Ed25519",
           "key_fingerprint": "0a076341b06e39ac",
           "public_key_url": "/.well-known/receipt-signing-key.json",
           "unsigned_view": {
-            "v": "cd-receipt-v3",
-            "receipt_id": "rcpt_369de05144dc050afbfaac93",
-            "audit_log_id": "aud_369de05144dc050afbfaac93",
-            "org_id": "org_ed78cc27e5015aa6",
-            "key_id": "key_6d570aa1752c831f",
+            "v": "cd-receipt-v4",
+            "receipt_id": "rcpt_1d37afcfd85ea55ecce8b10f",
+            "audit_log_id": "aud_1d37afcfd85ea55ecce8b10f",
+            "org_id": "org_31a63cf7c033bc8a",
+            "key_id": "key_11a66bb0804d6f74",
             "tool": "eu_duty_estimate",
             "upstream": "openkrill",
             "protocol": "http",
@@ -294,13 +294,13 @@
             "amount_mc": 0,
             "cost_mc": 0,
             "currency": "USD",
-            "params_sha256": "e7bbf8cecfcd83e84be7a3bb8571e3652e3540e1cc04c388e2780d569be72295",
+            "params_sha256": "fc00a1314204eb4a3be4129b57b0c443397b597974b22e2e50d14c5584c4b7b5",
             "result_sha256": null,
-            "issued_at": 1792516541873
+            "issued_at": 1792518339692
           }
         },
         "balance": {
-          "key_id": "key_6d570aa1752c831f",
+          "key_id": "key_11a66bb0804d6f74",
           "budget_period": "none",
           "resets_at": null,
           "budget_cents": 2,
@@ -315,11 +315,11 @@
       "pass": true,
       "status": 200,
       "expected": 200,
-      "ms": 220,
+      "ms": 124,
       "headers": {},
       "body": {
         "period": "2026-10",
-        "key_id": "key_6d570aa1752c831f",
+        "key_id": "key_11a66bb0804d6f74",
         "budget_period": "none",
         "resets_at": null,
         "budget_cents": 2,
@@ -346,22 +346,22 @@
       "pass": true,
       "results": [
         {
-          "id": "rcpt_e3e51ac87ec3d1fcc6fe9bb1",
+          "id": "rcpt_d956a8c86050c1df04352a77",
           "valid": true,
           "tampered_valid": false
         },
         {
-          "id": "rcpt_f5b634dbecca56fc83e14e1f",
+          "id": "rcpt_845fcf6201a617a4f9a1c96a",
           "valid": true,
           "tampered_valid": false
         },
         {
-          "id": "rcpt_d11c7d842326b400c2c3bfa5",
+          "id": "rcpt_6ae62b4697db7961ace8c0a9",
           "valid": true,
           "tampered_valid": false
         },
         {
-          "id": "rcpt_369de05144dc050afbfaac93",
+          "id": "rcpt_1d37afcfd85ea55ecce8b10f",
           "valid": true,
           "tampered_valid": false
         }
@@ -372,28 +372,28 @@
       "pass": true,
       "status": 200,
       "expected": 200,
-      "ms": 15179,
+      "ms": 15473,
       "headers": {
         "x-clearing-price-cents": "1",
-        "x-clearing-receipt": "rcpt_7b83bd6fba24031f6acea990",
+        "x-clearing-receipt": "rcpt_1be236d4e96598f737986316",
         "x-clearing-remaining-budget-cents": "4",
-        "x-clearing-signature": "KgXzD_xzXQqT5u41Z1bsmkowMptzxMefD1YSkZvWEZ8U3I6f4u-B4Uzm758J0dug8q1K8LOely4sSHmewoovAA"
+        "x-clearing-signature": "CYDCPgglMxcm7QUQ7p6xHzCLT-j9jhbgcsCO5lzPRDfFmjGapudoPtax1vRg_ws_vqEs970297FGNovazsq7DQ"
       },
       "body": {
-        "result": "{\"result\":\"Wrangler applies D1 migrations through the `d1MigrationsApplyCommand` handler, which orchestrates the process of identifying unapplied migrations and executing them against a D1 database . This command can operate on both local and remote D1 databases . Additionally, the `createTestHarness` function provides an `applyD1Migrations` method for programmatically applying migrations in a tes",
+        "result": "{\"result\":\"Wrangler applies D1 migrations through the `d1MigrationsApplyCommand` which orchestrates the process of identifying unapplied migrations and executing them against a D1 database, either locally or remotely . This command initializes a migrations table, determines which migrations are pending, prompts for user confirmation, and then executes each migration sequentially    .\\n\\n## Migrati",
         "receipt": {
-          "receipt_id": "rcpt_7b83bd6fba24031f6acea990",
-          "payload": "{\"v\":\"cd-receipt-v3\",\"receipt_id\":\"rcpt_7b83bd6fba24031f6acea990\",\"audit_log_id\":\"aud_7b83bd6fba24031f6acea990\",\"org_id\":\"org_ddbf888f2cf24ddb\",\"key_id\":\"key_452029088160fd4c\",\"tool\":\"ask_repo_question\",\"upstream\":\"deepwiki\",\"protocol\":\"http\",\"outcome\":\"success\",\"http_status\":200,\"amount_mc\":1000,\"cost_mc\":0,\"currency\":\"USD\",\"params_sha256\":\"586cd817cb22886701330dbaf4478fc860ca25088edb8b316eab900b1db078b5\",\"result_sha256\":\"6f591b775d20d4759beec7573406e2eb9ee7b9881587a9e16e4003cc5dfa337a\",\"issued_at\":1792516557881}",
-          "signature": "KgXzD_xzXQqT5u41Z1bsmkowMptzxMefD1YSkZvWEZ8U3I6f4u-B4Uzm758J0dug8q1K8LOely4sSHmewoovAA",
+          "receipt_id": "rcpt_1be236d4e96598f737986316",
+          "payload": "{\"v\":\"cd-receipt-v4\",\"receipt_id\":\"rcpt_1be236d4e96598f737986316\",\"audit_log_id\":\"aud_1be236d4e96598f737986316\",\"org_id\":\"org_ca80be30b32d8274\",\"key_id\":\"key_ab38bd0a6d71e5c5\",\"tool\":\"ask_repo_question\",\"upstream\":\"deepwiki\",\"protocol\":\"http\",\"outcome\":\"success\",\"http_status\":200,\"amount_mc\":1000,\"cost_mc\":0,\"currency\":\"USD\",\"params_sha256\":\"85a56d4490dcde33433d9870ef1f307dd29bbc5670547246f8ca50049bf5dff0\",\"result_sha256\":\"855f468bda1c9d3bb26262044648d00e5963b206116f9809d54dd5b2b42b39ef\",\"issued_at\":1792518355830}",
+          "signature": "CYDCPgglMxcm7QUQ7p6xHzCLT-j9jhbgcsCO5lzPRDfFmjGapudoPtax1vRg_ws_vqEs970297FGNovazsq7DQ",
           "alg": "Ed25519",
           "key_fingerprint": "0a076341b06e39ac",
           "public_key_url": "/.well-known/receipt-signing-key.json",
           "unsigned_view": {
-            "v": "cd-receipt-v3",
-            "receipt_id": "rcpt_7b83bd6fba24031f6acea990",
-            "audit_log_id": "aud_7b83bd6fba24031f6acea990",
-            "org_id": "org_ddbf888f2cf24ddb",
-            "key_id": "key_452029088160fd4c",
+            "v": "cd-receipt-v4",
+            "receipt_id": "rcpt_1be236d4e96598f737986316",
+            "audit_log_id": "aud_1be236d4e96598f737986316",
+            "org_id": "org_ca80be30b32d8274",
+            "key_id": "key_ab38bd0a6d71e5c5",
             "tool": "ask_repo_question",
             "upstream": "deepwiki",
             "protocol": "http",
@@ -402,13 +402,13 @@
             "amount_mc": 1000,
             "cost_mc": 0,
             "currency": "USD",
-            "params_sha256": "586cd817cb22886701330dbaf4478fc860ca25088edb8b316eab900b1db078b5",
-            "result_sha256": "6f591b775d20d4759beec7573406e2eb9ee7b9881587a9e16e4003cc5dfa337a",
-            "issued_at": 1792516557881
+            "params_sha256": "85a56d4490dcde33433d9870ef1f307dd29bbc5670547246f8ca50049bf5dff0",
+            "result_sha256": "855f468bda1c9d3bb26262044648d00e5963b206116f9809d54dd5b2b42b39ef",
+            "issued_at": 1792518355830
           }
         },
         "balance": {
-          "key_id": "key_452029088160fd4c",
+          "key_id": "key_ab38bd0a6d71e5c5",
           "budget_period": "none",
           "resets_at": null,
           "budget_cents": 5,
@@ -423,22 +423,22 @@
       "pass": true,
       "status": 200,
       "expected": 200,
-      "ms": 129,
+      "ms": 161,
       "headers": {},
       "body": {
         "receipt": {
-          "receipt_id": "rcpt_7b83bd6fba24031f6acea990",
-          "payload": "{\"v\":\"cd-receipt-v3\",\"receipt_id\":\"rcpt_7b83bd6fba24031f6acea990\",\"audit_log_id\":\"aud_7b83bd6fba24031f6acea990\",\"org_id\":\"org_ddbf888f2cf24ddb\",\"key_id\":\"key_452029088160fd4c\",\"tool\":\"ask_repo_question\",\"upstream\":\"deepwiki\",\"protocol\":\"http\",\"outcome\":\"success\",\"http_status\":200,\"amount_mc\":1000,\"cost_mc\":0,\"currency\":\"USD\",\"params_sha256\":\"586cd817cb22886701330dbaf4478fc860ca25088edb8b316eab900b1db078b5\",\"result_sha256\":\"6f591b775d20d4759beec7573406e2eb9ee7b9881587a9e16e4003cc5dfa337a\",\"issued_at\":1792516557881}",
-          "signature": "KgXzD_xzXQqT5u41Z1bsmkowMptzxMefD1YSkZvWEZ8U3I6f4u-B4Uzm758J0dug8q1K8LOely4sSHmewoovAA",
+          "receipt_id": "rcpt_1be236d4e96598f737986316",
+          "payload": "{\"v\":\"cd-receipt-v4\",\"receipt_id\":\"rcpt_1be236d4e96598f737986316\",\"audit_log_id\":\"aud_1be236d4e96598f737986316\",\"org_id\":\"org_ca80be30b32d8274\",\"key_id\":\"key_ab38bd0a6d71e5c5\",\"tool\":\"ask_repo_question\",\"upstream\":\"deepwiki\",\"protocol\":\"http\",\"outcome\":\"success\",\"http_status\":200,\"amount_mc\":1000,\"cost_mc\":0,\"currency\":\"USD\",\"params_sha256\":\"85a56d4490dcde33433d9870ef1f307dd29bbc5670547246f8ca50049bf5dff0\",\"result_sha256\":\"855f468bda1c9d3bb26262044648d00e5963b206116f9809d54dd5b2b42b39ef\",\"issued_at\":1792518355830}",
+          "signature": "CYDCPgglMxcm7QUQ7p6xHzCLT-j9jhbgcsCO5lzPRDfFmjGapudoPtax1vRg_ws_vqEs970297FGNovazsq7DQ",
           "alg": "Ed25519",
           "key_fingerprint": "0a076341b06e39ac",
           "public_key_url": "/.well-known/receipt-signing-key.json",
           "unsigned_view": {
-            "v": "cd-receipt-v3",
-            "receipt_id": "rcpt_7b83bd6fba24031f6acea990",
-            "audit_log_id": "aud_7b83bd6fba24031f6acea990",
-            "org_id": "org_ddbf888f2cf24ddb",
-            "key_id": "key_452029088160fd4c",
+            "v": "cd-receipt-v4",
+            "receipt_id": "rcpt_1be236d4e96598f737986316",
+            "audit_log_id": "aud_1be236d4e96598f737986316",
+            "org_id": "org_ca80be30b32d8274",
+            "key_id": "key_ab38bd0a6d71e5c5",
             "tool": "ask_repo_question",
             "upstream": "deepwiki",
             "protocol": "http",
@@ -447,9 +447,9 @@
             "amount_mc": 1000,
             "cost_mc": 0,
             "currency": "USD",
-            "params_sha256": "586cd817cb22886701330dbaf4478fc860ca25088edb8b316eab900b1db078b5",
-            "result_sha256": "6f591b775d20d4759beec7573406e2eb9ee7b9881587a9e16e4003cc5dfa337a",
-            "issued_at": 1792516557881
+            "params_sha256": "85a56d4490dcde33433d9870ef1f307dd29bbc5670547246f8ca50049bf5dff0",
+            "result_sha256": "855f468bda1c9d3bb26262044648d00e5963b206116f9809d54dd5b2b42b39ef",
+            "issued_at": 1792518355830
           }
         }
       }
@@ -459,12 +459,12 @@
       "pass": true,
       "status": 404,
       "expected": 404,
-      "ms": 102,
+      "ms": 127,
       "headers": {},
       "body": {
         "error": {
           "code": "not_found",
-          "message": "Receipt rcpt_7b83bd6fba24031f6acea990 not found"
+          "message": "Receipt rcpt_1be236d4e96598f737986316 not found"
         }
       }
     },
@@ -473,7 +473,7 @@
       "pass": true,
       "results": [
         {
-          "id": "rcpt_7b83bd6fba24031f6acea990",
+          "id": "rcpt_1be236d4e96598f737986316",
           "valid": true,
           "tampered_valid": false
         }
@@ -494,11 +494,11 @@
       "pass": true,
       "statuses": [
         402,
-        402,
-        402,
-        402,
-        402,
         200,
+        402,
+        402,
+        402,
+        402,
         402,
         402,
         402,
@@ -510,10 +510,10 @@
       "pass": true,
       "status": 200,
       "expected": 200,
-      "ms": 270,
+      "ms": 189,
       "headers": {},
       "body": {
-        "key_id": "key_6f962370cd2e0162",
+        "key_id": "key_79c1c6cf192e3913",
         "key": "cd_live_…masked",
         "key_prefix": "cd_live_…masked"
       }
@@ -523,7 +523,7 @@
       "pass": true,
       "status": 401,
       "expected": 401,
-      "ms": 152,
+      "ms": 148,
       "headers": {},
       "body": {
         "error": {
@@ -537,28 +537,28 @@
       "pass": true,
       "status": 200,
       "expected": 200,
-      "ms": 1022,
+      "ms": 441,
       "headers": {
         "x-clearing-price-cents": "1",
-        "x-clearing-receipt": "rcpt_b1f7c8be1ca0865166e7405f",
+        "x-clearing-receipt": "rcpt_d87376d4ece3e0ad72efe96e",
         "x-clearing-remaining-budget-cents": "4",
-        "x-clearing-signature": "2Vo9U326fGoIxEoWVM8cgMTVUjZaR73bQ5ADsgJUFRwa1oSq2pxeAAenOCkeUWda6hEjikIoZVt40I7QUMeVAw"
+        "x-clearing-signature": "UOktDqwvm2VTM3ukcRTzc5wB7tzquyYgr9YKRGY6hmOL8BtYEhfFCNNtOYKbrI0lRBZAMuH9WDa1i0QMk6YTDA"
       },
       "body": {
         "result": "{\"as_of\":\"2026-10-20T16:51:46.160Z\",\"country\":\"IE\",\"vatNumber\":\"6388047V\",\"valid\":true,\"checkedAt\":\"2026-10-20T16:51:46.140Z\",\"name\":\"GOOGLE IRELAND LIMITED\",\"address\":\"3RD FLOOR, GORDON HOUSE, BARROW STREET, DUBLIN 4\",\"notice\":\"A valid result means the number is registered for VAT in that member state, as the member state's own register reports it on the date shown. It does not say the business i",
         "receipt": {
-          "receipt_id": "rcpt_b1f7c8be1ca0865166e7405f",
-          "payload": "{\"v\":\"cd-receipt-v3\",\"receipt_id\":\"rcpt_b1f7c8be1ca0865166e7405f\",\"audit_log_id\":\"aud_b1f7c8be1ca0865166e7405f\",\"org_id\":\"org_ddbf888f2cf24ddb\",\"key_id\":\"key_6f962370cd2e0162\",\"tool\":\"check_vat_number\",\"upstream\":\"openkrill\",\"protocol\":\"http\",\"outcome\":\"success\",\"http_status\":200,\"amount_mc\":1000,\"cost_mc\":500,\"currency\":\"USD\",\"params_sha256\":\"220587e5ea0f963384363a612dcb15366d57f0b541a9ade913a56c85f4564c5e\",\"result_sha256\":\"bce1f1779023a28e5c7d9b8251df74f5face4e9a31afcef6cb272b8e6e220682\",\"issued_at\":1792516561192}",
-          "signature": "2Vo9U326fGoIxEoWVM8cgMTVUjZaR73bQ5ADsgJUFRwa1oSq2pxeAAenOCkeUWda6hEjikIoZVt40I7QUMeVAw",
+          "receipt_id": "rcpt_d87376d4ece3e0ad72efe96e",
+          "payload": "{\"v\":\"cd-receipt-v4\",\"receipt_id\":\"rcpt_d87376d4ece3e0ad72efe96e\",\"audit_log_id\":\"aud_d87376d4ece3e0ad72efe96e\",\"org_id\":\"org_ca80be30b32d8274\",\"key_id\":\"key_79c1c6cf192e3913\",\"tool\":\"check_vat_number\",\"upstream\":\"openkrill\",\"protocol\":\"http\",\"outcome\":\"success\",\"http_status\":200,\"amount_mc\":1000,\"cost_mc\":500,\"currency\":\"USD\",\"params_sha256\":\"220587e5ea0f963384363a612dcb15366d57f0b541a9ade913a56c85f4564c5e\",\"result_sha256\":\"54c6cf7a4415bfca611391e2b8d04401f9e630063ed7dced39c0adb9e85c7b8e\",\"issued_at\":1792518358167}",
+          "signature": "UOktDqwvm2VTM3ukcRTzc5wB7tzquyYgr9YKRGY6hmOL8BtYEhfFCNNtOYKbrI0lRBZAMuH9WDa1i0QMk6YTDA",
           "alg": "Ed25519",
           "key_fingerprint": "0a076341b06e39ac",
           "public_key_url": "/.well-known/receipt-signing-key.json",
           "unsigned_view": {
-            "v": "cd-receipt-v3",
-            "receipt_id": "rcpt_b1f7c8be1ca0865166e7405f",
-            "audit_log_id": "aud_b1f7c8be1ca0865166e7405f",
-            "org_id": "org_ddbf888f2cf24ddb",
-            "key_id": "key_6f962370cd2e0162",
+            "v": "cd-receipt-v4",
+            "receipt_id": "rcpt_d87376d4ece3e0ad72efe96e",
+            "audit_log_id": "aud_d87376d4ece3e0ad72efe96e",
+            "org_id": "org_ca80be30b32d8274",
+            "key_id": "key_79c1c6cf192e3913",
             "tool": "check_vat_number",
             "upstream": "openkrill",
             "protocol": "http",
@@ -568,12 +568,12 @@
             "cost_mc": 500,
             "currency": "USD",
             "params_sha256": "220587e5ea0f963384363a612dcb15366d57f0b541a9ade913a56c85f4564c5e",
-            "result_sha256": "bce1f1779023a28e5c7d9b8251df74f5face4e9a31afcef6cb272b8e6e220682",
-            "issued_at": 1792516561192
+            "result_sha256": "54c6cf7a4415bfca611391e2b8d04401f9e630063ed7dced39c0adb9e85c7b8e",
+            "issued_at": 1792518358167
           }
         },
         "balance": {
-          "key_id": "key_6f962370cd2e0162",
+          "key_id": "key_79c1c6cf192e3913",
           "budget_period": "none",
           "resets_at": null,
           "budget_cents": 5,
@@ -588,10 +588,10 @@
       "pass": true,
       "status": 200,
       "expected": 200,
-      "ms": 99,
+      "ms": 105,
       "headers": {},
       "body": {
-        "key_id": "key_6f962370cd2e0162",
+        "key_id": "key_79c1c6cf192e3913",
         "status": "revoked"
       }
     },
@@ -600,13 +600,13 @@
       "pass": true,
       "status": 403,
       "expected": 403,
-      "ms": 108,
+      "ms": 110,
       "headers": {},
       "body": {
         "error": {
           "code": "key_revoked",
           "message": "Agent key has been revoked",
-          "key_id": "key_6f962370cd2e0162"
+          "key_id": "key_79c1c6cf192e3913"
         }
       }
     },
@@ -615,7 +615,7 @@
       "pass": true,
       "status": 200,
       "expected": 200,
-      "ms": 152,
+      "ms": 93,
       "headers": {},
       "body": {
         "jsonrpc": "2.0",
@@ -628,12 +628,12 @@
       "pass": true,
       "status": 200,
       "expected": 200,
-      "ms": 104,
+      "ms": 130,
       "headers": {},
       "body": {
         "jsonrpc": "2.0",
         "id": 2,
-        "result": "{\"tools\":[{\"name\":\"eu_duty_estimate\",\"title\":\"EU duty on a low-value consignment\",\"description\":\"EUR 3 per item EU customs duty on a consignment up to EUR 150 (Reg. (EU) 2026/382). Metered by Agent Clearing Desk.\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"lines\":{\"type\":\"array\",\"minItems\":1,\"maxItems\":200,\"description\":\"Lines (1 to 200), each {description, origin (2 letters), qty (integer), un"
+        "result": "{\"tools\":[{\"name\":\"eu_duty_estimate\",\"title\":\"EU duty on a low-value consignment\",\"description\":\"EUR 3 per item EU customs duty on a consignment up to EUR 150 (Reg. (EU) 2026/382). Metered by Agent Clearing Desk. Price per successful call, in US cents: 1. Failed calls are free.\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"lines\":{\"type\":\"array\",\"minItems\":1,\"maxItems\":200,\"description\":\"Lines (1"
       }
     },
     {
@@ -641,12 +641,85 @@
       "pass": true,
       "status": 200,
       "expected": 200,
-      "ms": 103,
+      "ms": 146,
       "headers": {},
       "body": {
         "jsonrpc": "2.0",
         "id": 3,
-        "result": "{\"content\":[{\"type\":\"text\",\"text\":\"{\\\"key_id\\\":\\\"key_877a261c280702f8\\\",\\\"budget_period\\\":\\\"none\\\",\\\"resets_at\\\":null,\\\"budget_cents\\\":5,\\\"spent_cents\\\":0,\\\"remaining_cents\\\":5,\\\"remaining_usd\\\":\\\"$0.05000\\\",\\\"name\\\":\\\"e2e-5c\\\",\\\"allowlist\\\":[\\\"eu_duty_estimate\\\"]}\"}],\"structuredContent\":{\"key_id\":\"key_877a261c280702f8\",\"budget_period\":\"none\",\"resets_at\":null,\"budget_cents\":5,\"spent_cents\":0,\"rema"
+        "result": "{\"content\":[{\"type\":\"text\",\"text\":\"{\\\"key_id\\\":\\\"key_7535552450074794\\\",\\\"budget_period\\\":\\\"none\\\",\\\"resets_at\\\":null,\\\"budget_cents\\\":5,\\\"spent_cents\\\":0,\\\"remaining_cents\\\":5,\\\"remaining_usd\\\":\\\"$0.05000\\\",\\\"name\\\":\\\"e2e-5c\\\",\\\"allowlist\\\":[\\\"eu_duty_estimate\\\"]}\"}],\"structuredContent\":{\"key_id\":\"key_7535552450074794\",\"budget_period\":\"none\",\"resets_at\":null,\"budget_cents\":5,\"spent_cents\":0,\"rema"
+      }
+    },
+    {
+      "step": "mcp: tools/call carries the whole signed receipt",
+      "pass": true,
+      "status": 200,
+      "expected": 200,
+      "ms": 1051,
+      "headers": {},
+      "body": {
+        "jsonrpc": "2.0",
+        "id": 4,
+        "result": "{\"content\":[{\"type\":\"text\",\"text\":\"{\\\"result\\\":{\\\"as_of\\\":\\\"2026-07-01\\\",\\\"source\\\":{\\\"name\\\":\\\"EU Official Journal: Council Regulation (EU) 2026/382 of 11 February 2026\\\",\\\"url\\\":\\\"http://data.europa.eu/eli/reg/2026/382/oj\\\"},\\\"legal_basis\\\":[{\\\"instrument\\\":\\\"Council Regulation (EU) 2026/382 of 11 February 2026\\\",\\\"use\\\":\\\"Article 2: EUR 3 customs duty per item in a consignment of intrinsic valu"
+      }
+    },
+    {
+      "step": "mcp: verifier proves the answer and the input (keys reordered) from the MCP result alone",
+      "pass": true,
+      "checks": {
+        "signature": true,
+        "result_hash": true,
+        "input_hash": true,
+        "unsigned_view": true
+      }
+    },
+    {
+      "step": "mcp: get_call_receipt checks the signature",
+      "pass": true,
+      "status": 200,
+      "expected": 200,
+      "ms": 130,
+      "headers": {},
+      "body": {
+        "jsonrpc": "2.0",
+        "id": 5,
+        "result": "{\"content\":[{\"type\":\"text\",\"text\":\"{\\\"receipt\\\":{\\\"receipt_id\\\":\\\"rcpt_4f9b3694d0cc04a11c60e522\\\",\\\"payload\\\":\\\"{\\\\\\\"v\\\\\\\":\\\\\\\"cd-receipt-v4\\\\\\\",\\\\\\\"receipt_id\\\\\\\":\\\\\\\"rcpt_4f9b3694d0cc04a11c60e522\\\\\\\",\\\\\\\"audit_log_id\\\\\\\":\\\\\\\"aud_4f9b3694d0cc04a11c60e522\\\\\\\",\\\\\\\"org_id\\\\\\\":\\\\\\\"org_f63be289991e9dfc\\\\\\\",\\\\\\\"key_id\\\\\\\":\\\\\\\"key_7535552450074794\\\\\\\",\\\\\\\"tool\\\\\\\":\\\\\\\"eu_duty_estimate\\\\\\\",\\\\\\\"upstream\\\\"
+      }
+    },
+    {
+      "step": "gate: arguments that break the schema get 400 before any charge",
+      "pass": true,
+      "status": 400,
+      "expected": 400,
+      "ms": 140,
+      "headers": {},
+      "body": {
+        "error": {
+          "code": "invalid_arguments",
+          "message": "Arguments do not fit the check_vat_number input schema: arguments.vatNumber must have at least 2 characters. Nothing was charged.",
+          "problems": [
+            "arguments.vatNumber must have at least 2 characters"
+          ]
+        }
+      }
+    },
+    {
+      "step": "gate: nothing was spent",
+      "pass": true,
+      "status": 200,
+      "expected": 200,
+      "ms": 123,
+      "headers": {},
+      "body": {
+        "period": "2026-10",
+        "key_id": "key_6b10f2e58e6f065d",
+        "budget_period": "none",
+        "resets_at": null,
+        "budget_cents": 2,
+        "spent_cents": 0,
+        "remaining_cents": 2,
+        "remaining_usd": "$0.02000",
+        "items": [],
+        "total_calls": 0
       }
     },
     {
@@ -654,14 +727,15 @@
       "pass": true,
       "status": 201,
       "expected": 201,
-      "ms": 656,
+      "ms": 1059,
       "headers": {},
       "body": {
-        "name": "e2e_topics_mvgy2v30",
+        "name": "e2e_topics_mvgz5eul",
         "upstream": "mcp.deepwiki.com",
         "custom": true,
         "mcp_url": "https://mcp.deepwiki.com/mcp",
         "upstream_tool": "read_wiki_structure",
+        "upstream_auth": "none",
         "cost_cents": 0,
         "price_cents": 0.5,
         "margin_cents": 0.5
@@ -672,29 +746,29 @@
       "pass": true,
       "status": 200,
       "expected": 200,
-      "ms": 5577,
+      "ms": 4076,
       "headers": {
         "x-clearing-price-cents": "0.5",
-        "x-clearing-receipt": "rcpt_9b390d1cd902bed577abd6cc",
+        "x-clearing-receipt": "rcpt_ba9dd00ef487ba04dbe60ad9",
         "x-clearing-remaining-budget-cents": "0.5",
-        "x-clearing-signature": "AWtOokjh_XdEm5GECu_3cnj6-HfmvYDt4x9IekyQeHu6H0WJTH1NziaQIIRU2-KPi6K4dinm07mPJyRRtRD4Bw"
+        "x-clearing-signature": "DDDHrvBJMv8_LIEwEN2SP7TcP7d84LdXWxXoKZZRq2Tq1zKaAX2Fu9k_xs1Lwa8szE8hlKdj-eFGLnjMM7tCDg"
       },
       "body": {
         "result": "{\"result\":\"Available pages for cloudflare/workerd:\\n\\n- 1 Overview\\n  - 1.1 Key Concepts\\n  - 1.2 Getting Started and Samples\\n- 2 Core Runtime Architecture\\n  - 2.1 Server and Service Layer\\n  - 2.2 Worker and Isolate\\n  - 2.3 IoContext and Request Lifecycle\\n  - 2.4 Cross-Thread Object Ownership\\n  - 2.5 Module Registry\\n- 3 JavaScript Integration (JSG)\\n  - 3.1 Resource Types and Bindings\\n  - ",
         "receipt": {
-          "receipt_id": "rcpt_9b390d1cd902bed577abd6cc",
-          "payload": "{\"v\":\"cd-receipt-v3\",\"receipt_id\":\"rcpt_9b390d1cd902bed577abd6cc\",\"audit_log_id\":\"aud_9b390d1cd902bed577abd6cc\",\"org_id\":\"org_ddbf888f2cf24ddb\",\"key_id\":\"key_32f13c6d708d5298\",\"tool\":\"e2e_topics_mvgy2v30\",\"upstream\":\"mcp.deepwiki.com\",\"protocol\":\"http\",\"outcome\":\"success\",\"http_status\":200,\"amount_mc\":500,\"cost_mc\":0,\"currency\":\"USD\",\"params_sha256\":\"1e0877204ee251fa0a6f539b6069ed68e3379969a6ebe5faef848e4a4e564693\",\"result_sha256\":\"48b6b6d47be019bce2833d2d16dbcd2cc01dcc9132989647199c89dda531da68\",\"issued_at\":1792516568259}",
-          "signature": "AWtOokjh_XdEm5GECu_3cnj6-HfmvYDt4x9IekyQeHu6H0WJTH1NziaQIIRU2-KPi6K4dinm07mPJyRRtRD4Bw",
+          "receipt_id": "rcpt_ba9dd00ef487ba04dbe60ad9",
+          "payload": "{\"v\":\"cd-receipt-v4\",\"receipt_id\":\"rcpt_ba9dd00ef487ba04dbe60ad9\",\"audit_log_id\":\"aud_ba9dd00ef487ba04dbe60ad9\",\"org_id\":\"org_ca80be30b32d8274\",\"key_id\":\"key_117e64c9485edd41\",\"tool\":\"e2e_topics_mvgz5eul\",\"upstream\":\"mcp.deepwiki.com\",\"protocol\":\"http\",\"outcome\":\"success\",\"http_status\":200,\"amount_mc\":500,\"cost_mc\":0,\"currency\":\"USD\",\"params_sha256\":\"1e0877204ee251fa0a6f539b6069ed68e3379969a6ebe5faef848e4a4e564693\",\"result_sha256\":\"48b6b6d47be019bce2833d2d16dbcd2cc01dcc9132989647199c89dda531da68\",\"issued_at\":1792518365634}",
+          "signature": "DDDHrvBJMv8_LIEwEN2SP7TcP7d84LdXWxXoKZZRq2Tq1zKaAX2Fu9k_xs1Lwa8szE8hlKdj-eFGLnjMM7tCDg",
           "alg": "Ed25519",
           "key_fingerprint": "0a076341b06e39ac",
           "public_key_url": "/.well-known/receipt-signing-key.json",
           "unsigned_view": {
-            "v": "cd-receipt-v3",
-            "receipt_id": "rcpt_9b390d1cd902bed577abd6cc",
-            "audit_log_id": "aud_9b390d1cd902bed577abd6cc",
-            "org_id": "org_ddbf888f2cf24ddb",
-            "key_id": "key_32f13c6d708d5298",
-            "tool": "e2e_topics_mvgy2v30",
+            "v": "cd-receipt-v4",
+            "receipt_id": "rcpt_ba9dd00ef487ba04dbe60ad9",
+            "audit_log_id": "aud_ba9dd00ef487ba04dbe60ad9",
+            "org_id": "org_ca80be30b32d8274",
+            "key_id": "key_117e64c9485edd41",
+            "tool": "e2e_topics_mvgz5eul",
             "upstream": "mcp.deepwiki.com",
             "protocol": "http",
             "outcome": "success",
@@ -704,11 +778,11 @@
             "currency": "USD",
             "params_sha256": "1e0877204ee251fa0a6f539b6069ed68e3379969a6ebe5faef848e4a4e564693",
             "result_sha256": "48b6b6d47be019bce2833d2d16dbcd2cc01dcc9132989647199c89dda531da68",
-            "issued_at": 1792516568259
+            "issued_at": 1792518365634
           }
         },
         "balance": {
-          "key_id": "key_32f13c6d708d5298",
+          "key_id": "key_117e64c9485edd41",
           "budget_period": "daily",
           "resets_at": "2026-10-21T00:00:00.000Z",
           "budget_cents": 1,
@@ -733,42 +807,42 @@
       "pass": true,
       "status": 402,
       "expected": 402,
-      "ms": 200,
+      "ms": 192,
       "headers": {
         "x-clearing-price-cents": "0",
-        "x-clearing-receipt": "rcpt_347e906a0779e483327e7df5",
+        "x-clearing-receipt": "rcpt_e68cf10abe01657d03a162cd",
         "x-clearing-remaining-budget-cents": "0",
-        "x-clearing-signature": "sTkDR5LdwIikYB9GsTnFSx1-0lOq-JL9e4o3wntAM8Xl5bTqvUvpy3wVozFQFY3m8MjWbuPFHYyzMHy1EHLNBw"
+        "x-clearing-signature": "lB3JWhJZHU2nbREyxdWQoXhuHpTcsl53zK7QsGgQugm-sMc46y_tt_j2mGuWSb357ftH4RK78A_PG5EwuDc7Dw"
       },
       "body": {
         "error": {
           "code": "budget_exceeded",
-          "message": "Budget exceeded: $0.00000 left, e2e_topics_mvgy2v30 costs $0.00500. Stop calling paid tools with this key.",
-          "key_id": "key_32f13c6d708d5298",
+          "message": "Budget exceeded: $0.00000 left, e2e_topics_mvgz5eul costs $0.00500. Stop calling paid tools with this key.",
+          "key_id": "key_117e64c9485edd41",
           "budget_period": "daily",
           "resets_at": "2026-10-21T00:00:00.000Z",
           "budget_cents": 1,
           "spent_cents": 1,
           "remaining_cents": 0,
           "remaining_usd": "$0.00000",
-          "tool_name": "e2e_topics_mvgy2v30",
+          "tool_name": "e2e_topics_mvgz5eul",
           "call_price_cents": 0.5,
-          "receipt_id": "rcpt_347e906a0779e483327e7df5"
+          "receipt_id": "rcpt_e68cf10abe01657d03a162cd"
         },
         "receipt": {
-          "receipt_id": "rcpt_347e906a0779e483327e7df5",
-          "payload": "{\"v\":\"cd-receipt-v3\",\"receipt_id\":\"rcpt_347e906a0779e483327e7df5\",\"audit_log_id\":\"aud_347e906a0779e483327e7df5\",\"org_id\":\"org_ddbf888f2cf24ddb\",\"key_id\":\"key_32f13c6d708d5298\",\"tool\":\"e2e_topics_mvgy2v30\",\"upstream\":\"mcp.deepwiki.com\",\"protocol\":\"http\",\"outcome\":\"refused_budget\",\"http_status\":402,\"amount_mc\":0,\"cost_mc\":0,\"currency\":\"USD\",\"params_sha256\":\"1e0877204ee251fa0a6f539b6069ed68e3379969a6ebe5faef848e4a4e564693\",\"result_sha256\":null,\"issued_at\":1792516573398}",
-          "signature": "sTkDR5LdwIikYB9GsTnFSx1-0lOq-JL9e4o3wntAM8Xl5bTqvUvpy3wVozFQFY3m8MjWbuPFHYyzMHy1EHLNBw",
+          "receipt_id": "rcpt_e68cf10abe01657d03a162cd",
+          "payload": "{\"v\":\"cd-receipt-v4\",\"receipt_id\":\"rcpt_e68cf10abe01657d03a162cd\",\"audit_log_id\":\"aud_e68cf10abe01657d03a162cd\",\"org_id\":\"org_ca80be30b32d8274\",\"key_id\":\"key_117e64c9485edd41\",\"tool\":\"e2e_topics_mvgz5eul\",\"upstream\":\"mcp.deepwiki.com\",\"protocol\":\"http\",\"outcome\":\"refused_budget\",\"http_status\":402,\"amount_mc\":0,\"cost_mc\":0,\"currency\":\"USD\",\"params_sha256\":\"1e0877204ee251fa0a6f539b6069ed68e3379969a6ebe5faef848e4a4e564693\",\"result_sha256\":null,\"issued_at\":1792518369737}",
+          "signature": "lB3JWhJZHU2nbREyxdWQoXhuHpTcsl53zK7QsGgQugm-sMc46y_tt_j2mGuWSb357ftH4RK78A_PG5EwuDc7Dw",
           "alg": "Ed25519",
           "key_fingerprint": "0a076341b06e39ac",
           "public_key_url": "/.well-known/receipt-signing-key.json",
           "unsigned_view": {
-            "v": "cd-receipt-v3",
-            "receipt_id": "rcpt_347e906a0779e483327e7df5",
-            "audit_log_id": "aud_347e906a0779e483327e7df5",
-            "org_id": "org_ddbf888f2cf24ddb",
-            "key_id": "key_32f13c6d708d5298",
-            "tool": "e2e_topics_mvgy2v30",
+            "v": "cd-receipt-v4",
+            "receipt_id": "rcpt_e68cf10abe01657d03a162cd",
+            "audit_log_id": "aud_e68cf10abe01657d03a162cd",
+            "org_id": "org_ca80be30b32d8274",
+            "key_id": "key_117e64c9485edd41",
+            "tool": "e2e_topics_mvgz5eul",
             "upstream": "mcp.deepwiki.com",
             "protocol": "http",
             "outcome": "refused_budget",
@@ -778,11 +852,11 @@
             "currency": "USD",
             "params_sha256": "1e0877204ee251fa0a6f539b6069ed68e3379969a6ebe5faef848e4a4e564693",
             "result_sha256": null,
-            "issued_at": 1792516573398
+            "issued_at": 1792518369737
           }
         },
         "balance": {
-          "key_id": "key_32f13c6d708d5298",
+          "key_id": "key_117e64c9485edd41",
           "budget_period": "daily",
           "resets_at": "2026-10-21T00:00:00.000Z",
           "budget_cents": 1,
@@ -797,10 +871,10 @@
       "pass": true,
       "status": 200,
       "expected": 200,
-      "ms": 333,
+      "ms": 262,
       "headers": {},
       "body": {
-        "name": "e2e_topics_mvgy2v30",
+        "name": "e2e_topics_mvgz5eul",
         "status": "disabled"
       }
     },
@@ -809,13 +883,174 @@
       "pass": true,
       "status": 404,
       "expected": 404,
-      "ms": 138,
+      "ms": 128,
       "headers": {},
       "body": {
         "error": {
           "code": "unknown_tool",
-          "message": "Unknown tool 'e2e_topics_mvgy2v30'. List tools at GET /v1/tools or MCP tools/list."
+          "message": "Unknown tool 'e2e_topics_mvgz5eul'. List tools at GET /v1/tools or MCP tools/list."
         }
+      }
+    },
+    {
+      "step": "operator: add a tool with an upstream credential header",
+      "pass": true,
+      "status": 201,
+      "expected": 201,
+      "ms": 734,
+      "headers": {},
+      "body": {
+        "name": "e2e_sealed_mvgz5mee",
+        "upstream": "mcp.deepwiki.com",
+        "custom": true,
+        "mcp_url": "https://mcp.deepwiki.com/mcp",
+        "upstream_tool": "read_wiki_structure",
+        "upstream_auth": "x-e2e-probe header, sealed",
+        "cost_cents": 0,
+        "price_cents": 0.5,
+        "margin_cents": 0.5
+      }
+    },
+    {
+      "step": "operator: the tool list shows the header name, never the value",
+      "pass": true,
+      "status": 200,
+      "expected": 200,
+      "ms": 101,
+      "headers": {},
+      "body": {
+        "tools": [
+          {
+            "name": "eu_duty_estimate",
+            "upstream": "openkrill",
+            "custom": false,
+            "cost_cents": 0.5,
+            "price_cents": 1,
+            "margin_cents": 0.5
+          },
+          {
+            "name": "find_tariff_codes",
+            "upstream": "openkrill",
+            "custom": false,
+            "cost_cents": 0.5,
+            "price_cents": 1,
+            "margin_cents": 0.5
+          },
+          {
+            "name": "check_vat_number",
+            "upstream": "openkrill",
+            "custom": false,
+            "cost_cents": 0.5,
+            "price_cents": 1,
+            "margin_cents": 0.5
+          },
+          {
+            "name": "list_jobs",
+            "upstream": "openkrill",
+            "custom": false,
+            "cost_cents": 0.15,
+            "price_cents": 0.2,
+            "margin_cents": 0.05
+          },
+          {
+            "name": "get_app_reviews",
+            "upstream": "openkrill",
+            "custom": false,
+            "cost_cents": 0.015,
+            "price_cents": 0.025,
+            "margin_cents": 0.01
+          },
+          {
+            "name": "get_transcript",
+            "upstream": "openkrill",
+            "custom": false,
+            "cost_cents": 0.4,
+            "price_cents": 0.5,
+            "margin_cents": 0.1
+          },
+          {
+            "name": "ask_repo_question",
+            "upstream": "deepwiki",
+            "custom": false,
+            "cost_cents": 0,
+            "price_cents": 1,
+            "margin_cents": 1
+          },
+          {
+            "name": "e2e_sealed_mvgz5mee",
+            "upstream": "mcp.deepwiki.com",
+            "custom": true,
+            "mcp_url": "https://mcp.deepwiki.com/mcp",
+            "upstream_tool": "read_wiki_structure",
+            "upstream_auth": "x-e2e-probe header, sealed",
+            "cost_cents": 0,
+            "price_cents": 0.5,
+            "margin_cents": 0.5
+          }
+        ]
+      }
+    },
+    {
+      "step": "operator: a call opens the sealed credential and clears",
+      "pass": true,
+      "status": 200,
+      "expected": 200,
+      "ms": 10029,
+      "headers": {
+        "x-clearing-price-cents": "0.5",
+        "x-clearing-receipt": "rcpt_08adcb81cf9d216e17bb6d61",
+        "x-clearing-remaining-budget-cents": "0.5",
+        "x-clearing-signature": "Lz9ute7w0U-rC8yg9H9Z7GZGvxI_g4ul3vdVoY2fW-dJ0hx2yyArTfR2Cd_LcTpnjmOfbd0yGaDFlH0T-02kCg"
+      },
+      "body": {
+        "result": "{\"result\":\"Available pages for cloudflare/workerd:\\n\\n- 1 Overview\\n  - 1.1 Key Concepts\\n  - 1.2 Getting Started and Samples\\n- 2 Core Runtime Architecture\\n  - 2.1 Server and Service Layer\\n  - 2.2 Worker and Isolate\\n  - 2.3 IoContext and Request Lifecycle\\n  - 2.4 Cross-Thread Object Ownership\\n  - 2.5 Module Registry\\n- 3 JavaScript Integration (JSG)\\n  - 3.1 Resource Types and Bindings\\n  - ",
+        "receipt": {
+          "receipt_id": "rcpt_08adcb81cf9d216e17bb6d61",
+          "payload": "{\"v\":\"cd-receipt-v4\",\"receipt_id\":\"rcpt_08adcb81cf9d216e17bb6d61\",\"audit_log_id\":\"aud_08adcb81cf9d216e17bb6d61\",\"org_id\":\"org_ca80be30b32d8274\",\"key_id\":\"key_dbf2466184e2e6f2\",\"tool\":\"e2e_sealed_mvgz5mee\",\"upstream\":\"mcp.deepwiki.com\",\"protocol\":\"http\",\"outcome\":\"success\",\"http_status\":200,\"amount_mc\":500,\"cost_mc\":0,\"currency\":\"USD\",\"params_sha256\":\"1e0877204ee251fa0a6f539b6069ed68e3379969a6ebe5faef848e4a4e564693\",\"result_sha256\":\"48b6b6d47be019bce2833d2d16dbcd2cc01dcc9132989647199c89dda531da68\",\"issued_at\":1792518381156}",
+          "signature": "Lz9ute7w0U-rC8yg9H9Z7GZGvxI_g4ul3vdVoY2fW-dJ0hx2yyArTfR2Cd_LcTpnjmOfbd0yGaDFlH0T-02kCg",
+          "alg": "Ed25519",
+          "key_fingerprint": "0a076341b06e39ac",
+          "public_key_url": "/.well-known/receipt-signing-key.json",
+          "unsigned_view": {
+            "v": "cd-receipt-v4",
+            "receipt_id": "rcpt_08adcb81cf9d216e17bb6d61",
+            "audit_log_id": "aud_08adcb81cf9d216e17bb6d61",
+            "org_id": "org_ca80be30b32d8274",
+            "key_id": "key_dbf2466184e2e6f2",
+            "tool": "e2e_sealed_mvgz5mee",
+            "upstream": "mcp.deepwiki.com",
+            "protocol": "http",
+            "outcome": "success",
+            "http_status": 200,
+            "amount_mc": 500,
+            "cost_mc": 0,
+            "currency": "USD",
+            "params_sha256": "1e0877204ee251fa0a6f539b6069ed68e3379969a6ebe5faef848e4a4e564693",
+            "result_sha256": "48b6b6d47be019bce2833d2d16dbcd2cc01dcc9132989647199c89dda531da68",
+            "issued_at": 1792518381156
+          }
+        },
+        "balance": {
+          "key_id": "key_dbf2466184e2e6f2",
+          "budget_period": "none",
+          "resets_at": null,
+          "budget_cents": 1,
+          "spent_cents": 0.5,
+          "remaining_cents": 0.5,
+          "remaining_usd": "$0.00500"
+        }
+      }
+    },
+    {
+      "step": "operator: disable the credential tool",
+      "pass": true,
+      "status": 200,
+      "expected": 200,
+      "ms": 267,
+      "headers": {},
+      "body": {
+        "name": "e2e_sealed_mvgz5mee",
+        "status": "disabled"
       }
     },
     {
@@ -823,18 +1058,18 @@
       "pass": true,
       "status": 200,
       "expected": 200,
-      "ms": 119,
+      "ms": 90,
       "headers": {},
       "body": {
-        "organizations": 10,
-        "active_keys": 31,
-        "allocated_budget_cents": 172,
-        "metered_spend_cents": 55.05,
-        "upstream_cost_cents": 23.28,
-        "clearing_margin_cents": 30.77,
-        "signed_receipts": 121,
-        "refusals": 53,
-        "upstream_errors": 7
+        "organizations": 22,
+        "active_keys": 47,
+        "allocated_budget_cents": 207,
+        "metered_spend_cents": 70.55,
+        "upstream_cost_cents": 30.28,
+        "clearing_margin_cents": 40.27,
+        "signed_receipts": 166,
+        "refusals": 79,
+        "upstream_errors": 8
       }
     }
   ]

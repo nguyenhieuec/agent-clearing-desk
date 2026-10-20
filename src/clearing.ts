@@ -1,10 +1,11 @@
 import type { AgentKey, BudgetPeriod, ClearingError, Env, Millicents, Protocol, Receipt } from './types.ts';
-import { currentSpend, periodResetsAt } from './budget-period.ts';
+import { currentSpend, periodKey, periodResetsAt } from './budget-period.ts';
 import type { GovernedTool } from './tools.ts';
 import { findTool } from './tool-registry.ts';
-import { getAgentKeyById, getAgentKeyByRawKey, recordLedgerEntry, reserveBudget } from './db.ts';
+import { countFailedCall, failedCallsThisHour, getAgentKeyById, getAgentKeyByRawKey, recordLedgerEntry, reserveBudget } from './db.ts';
 import { executeUpstreamTool } from './upstream.ts';
-import { sha256Hex } from './crypto.ts';
+import { canonicalJson, sha256Hex } from './crypto.ts';
+import { validateArguments } from './json-schema.ts';
 import { mcToCents, mcToUsd } from './money.ts';
 
 export type AuthResult = { ok: true; key: AgentKey } | { ok: false; status: number; error: ClearingError };
@@ -50,9 +51,17 @@ export function priceFor(key: AgentKey, tool: GovernedTool): Millicents {
   return overrides[tool.name] ?? tool.priceMc;
 }
 
-function missingRequired(tool: GovernedTool, args: Record<string, unknown>): string[] {
-  const required = tool.inputSchema?.required ?? [];
-  return required.filter(field => args[field] === undefined || args[field] === null || args[field] === '');
+/** Failed upstream calls are refunded, so a key may make only this many per UTC hour. */
+const DEFAULT_FAILED_CALLS_PER_HOUR = 20;
+
+function failedCallLimit(env: Env): number {
+  const n = Number(env.FAILED_CALLS_PER_HOUR);
+  return Number.isInteger(n) && n > 0 ? n : DEFAULT_FAILED_CALLS_PER_HOUR;
+}
+
+/** An upstream 4xx (other than its own auth, timeout and rate limit) means the agent's arguments were wrong. */
+function upstreamRejectedArguments(status: number): boolean {
+  return status >= 400 && status < 500 && ![401, 403, 408, 429].includes(status);
 }
 
 /** Money fields every response carries, so an agent can always see where it stands. */
@@ -116,9 +125,10 @@ async function writeLedger(
     resultSha256: string | null;
     errorDetail: string | null;
     latencyMs: number;
+    reservedPeriod?: string;
   }
 ): Promise<Receipt> {
-  const paramsJson = JSON.stringify(ctx.args);
+  const paramsJson = canonicalJson(ctx.args);
   const { receipt } = await recordLedgerEntry(ctx.env.DB, {
     key: ctx.key,
     toolName: tool.name,
@@ -129,6 +139,7 @@ async function writeLedger(
     costMc: tool.costMc,
     signingKey: ctx.env.RECEIPT_SIGNING_KEY,
     ...fields,
+    reservedPeriod: fields.reservedPeriod ?? '',
   });
   return receipt;
 }
@@ -159,6 +170,36 @@ async function refuseBudget(ctx: CallContext, tool: GovernedTool, priceMc: Milli
   return { kind: 'refused', httpStatus: 402, error, receipt, priceMc, balance };
 }
 
+async function refundFailure(
+  ctx: CallContext,
+  tool: GovernedTool,
+  priceMc: Millicents,
+  reservedPeriod: string,
+  upstream: { status: number; message: string },
+  latencyMs: number
+): Promise<ClearingOutcome> {
+  await countFailedCall(ctx.env.DB, ctx.key.key_id, Date.now());
+  const receipt = await writeLedger(ctx, tool, {
+    status: 'upstream_error',
+    statusCode: upstream.status,
+    priceMc,
+    refundMc: priceMc,
+    resultSha256: null,
+    errorDetail: upstream.message.slice(0, 500),
+    latencyMs,
+    reservedPeriod,
+  });
+  const { balance } = await freshBalance(ctx.env.DB, ctx.key);
+  const extra = { tool_name: tool.name, upstream_status: upstream.status, receipt_id: receipt.id };
+  // 400: the upstream refused the arguments (fix them, do not retry); 504: too slow; 502: it failed.
+  if (upstreamRejectedArguments(upstream.status)) {
+    const error = fail('invalid_arguments', `Upstream ${tool.target.upstream} rejected the arguments: ${upstream.message}. Nothing was charged; fix the arguments before calling again.`, extra);
+    return { kind: 'upstream_error', httpStatus: 400, error, receipt, priceMc, balance };
+  }
+  const error = fail('upstream_error', `Upstream ${tool.target.upstream} failed: ${upstream.message}. Nothing was charged.`, extra);
+  return { kind: 'upstream_error', httpStatus: upstream.status === 504 ? 504 : 502, error, receipt, priceMc, balance };
+}
+
 /**
  * The one path every governed call takes, over REST and MCP alike:
  * known tool -> required arguments -> allowlist -> atomic budget reservation ->
@@ -173,12 +214,12 @@ export async function clearToolCall(ctx: CallContext): Promise<ClearingOutcome> 
       error: fail('unknown_tool', `Unknown tool '${ctx.toolName}'. List tools at GET /v1/tools or MCP tools/list.`),
     };
   }
-  const missing = missingRequired(tool, ctx.args);
-  if (missing.length > 0) {
+  const problems = validateArguments(tool.inputSchema, ctx.args);
+  if (problems.length > 0) {
     return {
       kind: 'rejected',
       httpStatus: 400,
-      error: fail('invalid_arguments', `Missing required argument(s): ${missing.join(', ')}`, { missing }),
+      error: fail('invalid_arguments', `Arguments do not fit the ${tool.name} input schema: ${problems.join('; ')}. Nothing was charged.`, { problems }),
     };
   }
   const priceMc = priceFor(ctx.key, tool);
@@ -203,41 +244,33 @@ export async function clearToolCall(ctx: CallContext): Promise<ClearingOutcome> 
     return { kind: 'refused', httpStatus: 403, error, receipt, priceMc, balance };
   }
 
-  if (!(await reserveBudget(ctx.env.DB, ctx.key.key_id, priceMc, Date.now()))) {
+  const limit = failedCallLimit(ctx.env);
+  if ((await failedCallsThisHour(ctx.env.DB, ctx.key.key_id, Date.now())) >= limit) {
+    return {
+      kind: 'rejected',
+      httpStatus: 429,
+      error: fail('too_many_failed_calls', `This key made ${limit} failed upstream calls this UTC hour. Failed calls are free, so they are capped; fix the arguments and try next hour.`, { key_id: ctx.key.key_id, limit }),
+    };
+  }
+
+  const reservedAt = Date.now();
+  if (!(await reserveBudget(ctx.env.DB, ctx.key.key_id, priceMc, reservedAt))) {
     return refuseBudget(ctx, tool, priceMc);
   }
+  const reservedPeriod = periodKey(ctx.key.budget_period, reservedAt);
 
   const started = Date.now();
   const upstream = await executeUpstreamTool(ctx.env, tool, ctx.args);
   const latencyMs = Date.now() - started;
 
-  if (!upstream.ok) {
-    const receipt = await writeLedger(ctx, tool, {
-      status: 'upstream_error',
-      statusCode: upstream.status,
-      priceMc,
-      refundMc: priceMc,
-      resultSha256: null,
-      errorDetail: upstream.message.slice(0, 500),
-      latencyMs,
-    });
-    const { balance } = await freshBalance(ctx.env.DB, ctx.key);
-    const error = fail('upstream_error', `Upstream ${tool.target.upstream} failed: ${upstream.message}. Nothing was charged.`, {
-      tool_name: tool.name,
-      upstream_status: upstream.status,
-      receipt_id: receipt.id,
-    });
-    // 504 tells the agent the upstream was too slow, 502 that it failed; both are refunded.
-    const httpStatus = upstream.status === 504 ? 504 : 502;
-    return { kind: 'upstream_error', httpStatus, error, receipt, priceMc, balance };
-  }
+  if (!upstream.ok) return refundFailure(ctx, tool, priceMc, reservedPeriod, upstream, latencyMs);
 
   const receipt = await writeLedger(ctx, tool, {
     status: 'success',
     statusCode: 200,
     priceMc,
     refundMc: 0,
-    resultSha256: await sha256Hex(JSON.stringify(upstream.data)),
+    resultSha256: await sha256Hex(canonicalJson(upstream.data)),
     errorDetail: null,
     latencyMs,
   });

@@ -5,6 +5,7 @@ import { mcpToolList } from './tools.ts';
 import { listTools } from './tool-registry.ts';
 import { extractAgentKey } from './proxy.ts';
 import { mcToCents } from './money.ts';
+import { publicSigningKey, verifyReceiptSignature } from './crypto.ts';
 
 const SUPPORTED_VERSIONS = ['2025-06-18', '2025-03-26', '2024-11-05'];
 
@@ -37,16 +38,23 @@ async function receiptTool(id: RpcId, key: AgentKey, args: Record<string, unknow
   if (!receipt || receipt.org_id !== key.org_id) {
     return toolResult(id, { error: { code: 'not_found', message: `Receipt ${receiptId} not found` } }, true);
   }
-  return toolResult(id, { receipt: receiptView(receipt) });
+  const signatureValid = await verifyReceiptSignature(
+    await publicSigningKey(env.RECEIPT_SIGNING_KEY),
+    receipt.payload,
+    receipt.signature
+  );
+  return toolResult(id, { receipt: receiptView(receipt), signature_valid: signatureValid });
 }
 
 function outcomeResult(id: RpcId, outcome: ClearingOutcome) {
   if (outcome.kind === 'rejected') return toolResult(id, outcome.error, true);
+  // The whole signed receipt rides along, so an MCP client can verify with no second call.
   const clearing = {
     receipt_id: outcome.receipt.id,
     signature: outcome.receipt.signature,
     price_cents: outcome.kind === 'success' ? mcToCents(outcome.priceMc) : 0,
     ...outcome.balance,
+    receipt: receiptView(outcome.receipt),
   };
   if (outcome.kind !== 'success') return toolResult(id, { ...outcome.error, clearing }, true);
   return toolResult(id, { result: outcome.result, clearing });

@@ -13,13 +13,14 @@ Each agent key has a hard budget (one-off, daily or monthly) and a tool allowlis
 
 ## How a call is cleared
 
-1. Unknown tool: 404. Missing required arguments: 400. Nothing is charged.
-2. Tool not on the allowlist: 403 with a signed receipt.
+1. Unknown tool: 404. Arguments that break the input schema: 400 with the problems. Nothing is charged.
+2. Tool not on the allowlist: 403 with a signed receipt. Too many failed calls this hour: 429.
 3. One conditional `UPDATE` reserves the price; if the budget has no room, 402 with a signed receipt.
-4. The upstream runs. On failure or timeout the reservation is refunded (502 or 504).
-5. On success the price is charged and the receipt signs the input hash, result hash, amount and upstream cost.
+4. The upstream runs. On failure, timeout or refused arguments the reservation is refunded to its own budget period (502, 504 or 400).
+5. On success the price is charged and the receipt signs the input hash, result hash, amount and upstream cost (SHA-256 over canonical JSON).
 
-Operators add a tool from any MCP server at run time with `POST /api/admin/tools`; the desk reads that server's `tools/list` for the schema.
+Operators add a tool from any MCP server at run time with `POST /api/admin/tools`; the desk runs the MCP session handshake and reads that server's `tools/list` for the schema.
+An optional upstream credential header is sealed with AES-256-GCM and never returned.
 Money is integer millicents.
 The audit log and receipts are append-only.
 Receipts are visible only within their organization.
@@ -42,6 +43,7 @@ Secrets for a deployment:
 | `ADMIN_SECRET` | Bearer token for `/api/admin/*` (unset: the admin API is closed) |
 | `OPENKRILL_REFRESH_TOKEN` | OpenKrill Connect refresh token; seeds the first refresh, later tokens rotate in D1 |
 | `OPENKRILL_API_KEY` | Optional static OpenKrill API key; when set it replaces the Connect token |
+| `UPSTREAM_SECRET_KEY` | 32 random bytes in base64; seals credentials of operator-added MCP servers (unset: such credentials are refused) |
 
 `OPENKRILL_CLIENT_ID` (the Connect client) is a plain var in `wrangler.jsonc`.
 If a refresh token ever stops working, set a new seed and delete the `upstream_credentials` row.
@@ -49,7 +51,7 @@ If a refresh token ever stops working, set a new seed and delete the `upstream_c
 Scripts:
 
 - `scripts/run-e2e.mjs`: live end-to-end run (operator flow with `ADMIN_SECRET`).
-- `scripts/verify-receipt.mjs response.json [public-key.json] [--input args.json]`: offline check of the signature, the result hash, the input hash and the readable copy.
+- `scripts/verify-receipt.mjs response.json [public-key.json] [--input args.json]`: offline check of the signature, the result hash, the input hash and the readable copy; takes a REST response, an MCP `tools/call` result or a bare receipt.
 - `scripts/sync-tool-schemas.mjs`: copies input schemas from the upstreams.
 
 ## License

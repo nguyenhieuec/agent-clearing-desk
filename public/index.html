@@ -141,7 +141,7 @@
             <div class="form-grid">
               <div><label class="field-label" for="ck-name">Name</label><input id="ck-name" required placeholder="procurement-agent"></div>
               <div><label class="field-label" for="ck-org">Organization</label><select id="ck-org"></select></div>
-              <div><label class="field-label" for="ck-budget">Budget (cents)</label><input id="ck-budget" type="number" min="0" step="0.001" value="100" required></div>
+              <div><label class="field-label" for="ck-budget">Budget (cents)</label><input id="ck-budget" type="text" inputmode="decimal" pattern="[0-9]+([.][0-9]{1,3})?" title="A number of cents, such as 0.5" value="100" required></div>
               <div><label class="field-label" for="ck-exp">Expires in (minutes, optional)</label><input id="ck-exp" type="number" min="1" step="1" placeholder="never"></div>
               <div><label class="field-label" for="ck-period">Budget resets</label><select id="ck-period"><option value="none">Never (one-off budget)</option><option value="daily">Daily, 00:00 UTC</option><option value="monthly">Monthly, day 1 UTC</option></select></div>
             </div>
@@ -170,13 +170,15 @@
           <div class="table-wrap"><table class="tbl" id="prices-table"></table></div>
           <form class="card create" id="tool-form">
             <p class="field-label">Add a tool from any MCP server</p>
-            <p class="hint">The desk reads the server's own tools/list for the input schema. No deploy needed.</p>
+            <p class="hint">The desk reads the server's own tools/list for the input schema. No deploy needed. A credential is sealed with AES-256-GCM and never shown again.</p>
             <div class="form-grid">
               <div><label class="field-label" for="ct-url">MCP server URL (https)</label><input id="ct-url" type="url" required placeholder="https://mcp.deepwiki.com/mcp"></div>
               <div><label class="field-label" for="ct-upstream">Tool name on that server</label><input id="ct-upstream" required placeholder="read_wiki_structure"></div>
               <div><label class="field-label" for="ct-name">Name on the desk</label><input id="ct-name" required pattern="[a-z][a-z0-9_]{2,63}" placeholder="repo_topics"></div>
-              <div><label class="field-label" for="ct-cost">Upstream cost (cents)</label><input id="ct-cost" type="number" min="0" step="0.001" value="0" required></div>
-              <div><label class="field-label" for="ct-price">Price to agents (cents)</label><input id="ct-price" type="number" min="0" step="0.001" value="0.5" required></div>
+              <div><label class="field-label" for="ct-cost">Upstream cost (cents)</label><input id="ct-cost" type="text" inputmode="decimal" pattern="[0-9]+([.][0-9]{1,3})?" title="A number of cents, such as 0.5" value="0" required></div>
+              <div><label class="field-label" for="ct-price">Price to agents (cents)</label><input id="ct-price" type="text" inputmode="decimal" pattern="[0-9]+([.][0-9]{1,3})?" title="A number of cents, such as 0.5" value="1" required></div>
+              <div><label class="field-label" for="ct-auth-name">Credential header (optional)</label><input id="ct-auth-name" pattern="authorization|x-[a-z0-9-]{1,40}" placeholder="authorization"></div>
+              <div><label class="field-label" for="ct-auth-value">Credential value</label><input id="ct-auth-value" type="password" autocomplete="off" placeholder="Bearer ..."></div>
             </div>
             <div class="row gap"><button class="btn primary" type="submit">Add tool</button><span class="hint" id="tool-hint"></span></div>
           </form>

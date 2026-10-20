@@ -121,6 +121,23 @@ async function mcpFlow(key) {
   steps.at(-1).pass &&= list.body.result.tools.length >= 9;
   const bal = check('mcp: check_agent_balance', await rpc(3, 'tools/call', { name: 'check_agent_balance', arguments: {} }), 200);
   steps.at(-1).pass &&= typeof bal.body.result.structuredContent.remaining_cents === 'number';
+  steps.at(-2).pass &&= list.body.result.tools.find(t => t.name === 'eu_duty_estimate')?.description.includes('Price per successful call');
+  const paid = check('mcp: tools/call carries the whole signed receipt', await rpc(4, 'tools/call', { name: 'eu_duty_estimate', arguments: DUTY_ARGS }), 200);
+  // The same arguments with every key in another order: canonical hashing still proves the input.
+  const reordered = { channel: 'ioss', lines: [{ unit_value_eur: 25, qty: 3, origin: 'CN', description: 'cotton t-shirt' }] };
+  await proveAnswer('mcp: verifier proves the answer and the input (keys reordered) from the MCP result alone', { body: paid.body.result }, reordered);
+  const receiptId = paid.body.result.structuredContent.clearing.receipt_id;
+  const fetched = check('mcp: get_call_receipt checks the signature', await rpc(5, 'tools/call', { name: 'get_call_receipt', arguments: { receipt_id: receiptId } }), 200);
+  steps.at(-1).pass &&= fetched.body.result.structuredContent.signature_valid === true;
+}
+
+/** Calls that cost the upstream nothing are refused before any reservation, and failures are capped. */
+async function freeTrafficFlow(orgId) {
+  const { key } = await operatorKey(orgId, 2, ['check_vat_number']);
+  const bad = check('gate: arguments that break the schema get 400 before any charge', await run(key, 'check_vat_number', { country: 'IE', vatNumber: '1' }), 400);
+  steps.at(-1).pass &&= bad.body.error?.code === 'invalid_arguments' && bad.headers['x-clearing-receipt'] === undefined;
+  const usage = check('gate: nothing was spent', await request('/v1/usage', { headers: asKey(key) }), 200);
+  steps.at(-1).pass &&= usage.body.spent_cents === 0;
 }
 
 /** The full offline check a third party runs: signature, result hash, input hash, readable copy. */
@@ -143,6 +160,24 @@ async function customToolFlow(orgId) {
   check('operator: second call fits, third is refused for today', (await run(key, name, args), await run(key, name, args)), 402);
   check('operator: disable the added tool', await admin(`/api/admin/tools/${name}/disable`, {}), 200);
   check('operator: a disabled tool is unknown', await run(key, name, args), 404);
+  await sealedCredentialFlow(orgId, args);
+}
+
+/** A tool added with an upstream credential: the desk seals it, never shows it, and opens it per call. */
+async function sealedCredentialFlow(orgId, args) {
+  const name = `e2e_sealed_${Date.now().toString(36)}`;
+  const probe = `probe-${Date.now()}`;
+  const tool = {
+    name, mcpUrl: 'https://mcp.deepwiki.com/mcp', upstreamTool: 'read_wiki_structure', costCents: 0, priceCents: 0.5,
+    authHeader: { name: 'x-e2e-probe', value: probe },
+  };
+  check('operator: add a tool with an upstream credential header', await admin('/api/admin/tools', tool), 201);
+  const listed = check('operator: the tool list shows the header name, never the value', await admin('/api/admin/tools'), 200);
+  const view = listed.body.tools.find(t => t.name === name);
+  steps.at(-1).pass &&= view?.upstream_auth === 'x-e2e-probe header, sealed' && !JSON.stringify(listed.body).includes(probe);
+  const { key } = (await admin('/api/admin/keys', { orgId, name: 'e2e-sealed', budgetCents: 1, allowlist: [name] })).body;
+  check('operator: a call opens the sealed credential and clears', await run(key, name, args), 200);
+  check('operator: disable the credential tool', await admin(`/api/admin/tools/${name}/disable`, {}), 200);
 }
 
 async function operatorFlow() {
@@ -166,6 +201,7 @@ async function operatorFlow() {
   await concurrencyBurst(orgA);
   await rotationAndRevoke(orgA);
   await mcpFlow(b.key);
+  await freeTrafficFlow(orgB);
   await customToolFlow(orgA);
   check('operator: overview', await admin('/api/admin/overview'), 200);
 }

@@ -14,11 +14,15 @@ It uses no stock footage, no stock music and no third-party clips.
 ## Visuals
 
 - **Live demo steps:** captured from the deployed desk at https://agent-clearing-desk.nguyenhieuec.workers.dev.
-  A real run of the judge sandbox was recorded in a headless browser, and each of the 7 steps is shown in the state it reached.
-- **Operator console and audit log:** screenshots of the deployed desk, from `screenshots/`.
-- **Terminal scenes:** real output of the live end-to-end run and of `verify-receipt.mjs` on a real receipt, set in a terminal frame.
+  A real run of the judge sandbox was recorded in a headless browser, and each of the 7 steps is shown in the state it reached, zoomed to the step rows.
+- **Operator console:** the deployed desk's console, captured in a headless browser after it connected with the operator token.
+  The token field shows only dots; the token itself never appears on screen.
+  The key with the daily budget is the one the live end-to-end run made.
+- **Price list with an added tool:** a capture of the same console build from a test run, with a DeepWiki tool added through the Add a tool form.
+  The live end-to-end run adds, uses and disables such a tool on the deployed desk.
+- **Terminal scenes:** real output of the live end-to-end run, and of `scripts/verify-receipt.mjs` on a real receipt from the deployed desk and on a copy with one changed amount, set in a terminal frame.
 - **Architecture diagram:** `architecture.svg`, made for this submission.
-- **Comparison table:** made for this video from the public source of LiteLLM and Helicone, checked on 2026-10-20.
+- **Comparison table:** the same table as the README, from the public source of LiteLLM and Helicone, checked on 2026-10-20.
 - **Fonts:** Inter and JetBrains Mono, both under the SIL Open Font License 1.1.
 
 ## License

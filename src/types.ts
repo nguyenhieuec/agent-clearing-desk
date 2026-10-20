@@ -14,6 +14,10 @@ export interface Env {
   RECEIPT_SIGNING_KEY: string;
   /** How many public sandbox keys may be minted per UTC day. */
   DEMO_DAILY_KEY_LIMIT?: string;
+  /** Failed (refunded) upstream calls one key may make per UTC hour; default 20. */
+  FAILED_CALLS_PER_HOUR?: string;
+  /** 32 random bytes in base64; seals upstream credentials operators add at run time. */
+  UPSTREAM_SECRET_KEY?: string;
 }
 
 /**
@@ -81,7 +85,8 @@ export interface AuditLog {
 
 /** The exact fields a receipt signs, in signing order. */
 export interface ReceiptPayload {
-  v: 'cd-receipt-v3';
+  /** v4: params_sha256 and result_sha256 are SHA-256 over canonical JSON (sorted keys). */
+  v: 'cd-receipt-v4';
   receipt_id: string;
   audit_log_id: string;
   org_id: string;
@@ -156,6 +161,7 @@ export type ClearingErrorCode =
   | 'not_found'
   | 'bad_request'
   | 'rate_limited'
+  | 'too_many_failed_calls'
   | 'admin_disabled'
   | 'internal_error';
 

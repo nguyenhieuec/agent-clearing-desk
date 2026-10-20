@@ -146,6 +146,10 @@ export async function listAgentKeys(db: D1Database, limit = 100): Promise<AgentK
  * callers can never take more than `limit`. Returns the slot number, or null when the day is full.
  */
 export async function claimDailySlot(db: D1Database, name: string, limit: number, now: number): Promise<number | null> {
+  return claimCounterSlot(db, name, new Date(now).toISOString().slice(0, 10), limit);
+}
+
+async function claimCounterSlot(db: D1Database, name: string, period: string, limit: number): Promise<number | null> {
   if (limit <= 0) return null;
   const row = await db
     .prepare(
@@ -153,9 +157,24 @@ export async function claimDailySlot(db: D1Database, name: string, limit: number
        ON CONFLICT(name, period) DO UPDATE SET count = count + 1 WHERE count < ?3
        RETURNING count`
     )
-    .bind(name, new Date(now).toISOString().slice(0, 10), limit)
+    .bind(name, period, limit)
     .first<{ count: number }>();
   return row?.count ?? null;
+}
+
+const utcHour = (now: number) => new Date(now).toISOString().slice(0, 13);
+
+/** Failed (refunded) upstream calls of one key in the current UTC hour. */
+export async function failedCallsThisHour(db: D1Database, keyId: string, now: number): Promise<number> {
+  const row = await db
+    .prepare('SELECT count FROM desk_counters WHERE name = ? AND period = ?')
+    .bind(`failed:${keyId}`, utcHour(now))
+    .first<{ count: number }>();
+  return row?.count ?? 0;
+}
+
+export async function countFailedCall(db: D1Database, keyId: string, now: number): Promise<void> {
+  await claimCounterSlot(db, `failed:${keyId}`, utcHour(now), Number.MAX_SAFE_INTEGER);
 }
 
 /** The period a key's spend counts toward, chosen in SQL from the key's own budget_period. */
@@ -202,6 +221,8 @@ export interface LedgerEntry {
   priceMc: Millicents;
   /** Amount reserved by reserveBudget that must be handed back (upstream failed). */
   refundMc: Millicents;
+  /** The budget period the reservation was taken in (see periodKey); a refund only goes back to it. */
+  reservedPeriod: string;
   latencyMs: number;
   signingKey: string;
 }
@@ -236,7 +257,7 @@ export async function recordLedgerEntry(db: D1Database, e: LedgerEntry): Promise
     created_at: now,
   };
   const payload: ReceiptPayload = {
-    v: 'cd-receipt-v3',
+    v: 'cd-receipt-v4',
     receipt_id: `rcpt_${suffix}`,
     audit_log_id: auditLog.id,
     org_id: auditLog.org_id,
@@ -313,11 +334,12 @@ export async function recordLedgerEntry(db: D1Database, e: LedgerEntry): Promise
       ),
   ];
   if (e.refundMc > 0) {
-    // A refund that lands after a daily or monthly reset must not push the new period below 0.
+    // A refund that lands after a daily or monthly reset belongs to the old period, which
+    // no longer counts; returning it to the new period would let that period overspend.
     statements.push(
       db
-        .prepare('UPDATE agent_keys SET spent_mc = MAX(0, spent_mc - ?), updated_at = ? WHERE key_id = ?')
-        .bind(e.refundMc, now, e.key.key_id)
+        .prepare('UPDATE agent_keys SET spent_mc = MAX(0, spent_mc - ?), updated_at = ? WHERE key_id = ? AND period_key = ?')
+        .bind(e.refundMc, now, e.key.key_id, e.reservedPeriod)
     );
   }
   if (billed) {

@@ -24,19 +24,26 @@ For OpenKrill the desk is a Connect OAuth client: it refreshes its 1 hour access
 
 For each call the desk runs one path:
 
-1. Unknown tool: 404. Missing required arguments: 400. Nothing is written or charged.
+1. Unknown tool: 404.
+   Arguments that break the tool's input schema (type, required, pattern, length, enum, unknown field): 400 with the list of problems.
+   Nothing is written or charged, and the upstream is never called.
 2. Tool not on the key's allowlist: 403, a signed receipt, no upstream call.
+   A key with more than 20 failed upstream calls in the current UTC hour gets 429 `too_many_failed_calls`, so free failures cannot be used to hammer an upstream.
 3. Reserve the price with one conditional SQL `UPDATE ... WHERE spent_mc + price <= budget_mc`.
    If no row changes, the call gets 402 and a signed receipt.
    This is atomic: 20 concurrent calls on a key with room for one give exactly one success in the tests, and 10 concurrent calls on the live desk gave 1 x 200 and 9 x 402.
-4. Call the upstream. If it fails (502) or is slower than the tool's timeout (504), the reservation is refunded in the same batch that writes the receipt.
+4. Call the upstream. If it fails (502), is slower than the tool's timeout (504) or refuses the arguments (400), the reservation is refunded in the same batch that writes the receipt.
+   The refund goes back only to the budget period it was taken from, so a call that started before midnight and failed after it cannot give the new day extra room.
 5. On success, the desk charges the price and signs the receipt.
 
 Every receipt is Ed25519 over a canonical JSON payload.
 The payload holds the key, org, tool, upstream, outcome, HTTP status, amount, upstream cost, a SHA-256 of the input and a SHA-256 of the result.
+Both hashes are over canonical JSON (keys sorted at every level), so the same arguments in another key order still match.
 Anyone with the public key can check a response with no call to the desk: `node scripts/verify-receipt.mjs response.json public-key.json --input args.json`.
 The script checks 4 things: the signature, that the SHA-256 of the returned result is the signed `result_sha256`, that the SHA-256 of the arguments you sent is the signed `params_sha256`, and that the readable `unsigned_view` copy says the same as the signed `payload`.
 So a receipt proves which answer was paid for, not only that a charge happened.
+If a file has the receipt but not the result, the script says so (`proves_answer: false`) instead of passing it silently.
+Over MCP the whole signed receipt rides in the `tools/call` result next to the answer, so an MCP client can check it with no second call; `get_call_receipt` also checks the signature on the desk.
 The browser demo runs the same signature and result checks with WebCrypto.
 Changing one digit of the amount, or one character of the result, makes the check fail.
 
@@ -55,7 +62,8 @@ A receipt is visible only to keys of the same organization.
 | OpenKrill | REST | `list_jobs`, `get_app_reviews`, `get_transcript` |
 | DeepWiki (public) | MCP, SSE answers | `ask_repo_question` |
 
-Arguments pass through unchanged.
+Arguments pass through unchanged once they fit the schema.
+Each tool's description in `tools/list` states its price per successful call.
 Input schemas are copied from the upstreams by `scripts/sync-tool-schemas.mjs`.
 There is no fallback data: if the upstream fails, the agent gets an error and pays nothing.
 Two free desk tools, `check_agent_balance` and `get_call_receipt`, let an agent see where it stands.
@@ -67,9 +75,11 @@ curl -X POST $DESK/api/admin/tools -H "authorization: Bearer $ADMIN_SECRET" -H '
   -d '{"name":"repo_topics","mcpUrl":"https://mcp.deepwiki.com/mcp","upstreamTool":"read_wiki_structure","costCents":0,"priceCents":0.5}'
 ```
 
-The desk reads that server's own `tools/list`, keeps the input schema it finds there, and refuses a plain `http` URL, a bad name or a name taken by a built-in tool.
+The desk runs the MCP lifecycle with that server (`initialize`, then `notifications/initialized`, keeping the `mcp-session-id`), reads its own `tools/list`, keeps the input schema it finds there, and refuses a plain `http` URL, a bad name or a name taken by a built-in tool.
+For a paid server the operator adds one credential header (`authorization` or an `x-` header).
+The desk seals it with AES-256-GCM under its `UPSTREAM_SECRET_KEY`, bound to the tool name, opens it only to make a call, and never returns it: the tool list shows `authorization header, sealed`.
 The new tool shows up in `tools/list` at once and takes the same clearing path; `POST /api/admin/tools/:name/disable` takes it out again.
-The live e2e run adds a DeepWiki tool this way, clears calls on a daily key, proves the answer offline, and disables it.
+The live e2e run adds a DeepWiki tool this way, clears calls on a daily key, proves the answer offline, and disables it; then it adds a second one with a sealed header and clears a call through it.
 
 `cost` is the contract rate the operator sets per call for an upstream; the desk does not read a bill from the upstream.
 
@@ -83,14 +93,16 @@ The live e2e run adds a DeepWiki tool this way, clears calls on a daily key, pro
 
 ![Architecture](./architecture.svg)
 
-One TypeScript Cloudflare Worker with no runtime dependencies, and one D1 database with 5 ledger tables (`organizations`, `agent_keys`, `audit_logs`, `receipts`, `usage_events`) one for the upstream token (`upstream_credentials`), one for tools added at run time (`custom_tools`) and one for the daily sandbox cap (`desk_counters`).
+One TypeScript Cloudflare Worker with no runtime dependencies, and one D1 database with 5 ledger tables (`organizations`, `agent_keys`, `audit_logs`, `receipts`, `usage_events`) one for the upstream token (`upstream_credentials`), one for tools added at run time (`custom_tools`) and one for the daily sandbox cap and the failed-call cap (`desk_counters`).
 
 | File | Job |
 | --- | --- |
 | `src/clearing.ts` | The one clearing path for REST and MCP |
 | `src/db.ts` | Atomic reservation, ledger batch, readers |
 | `src/crypto.ts` | Key hashing, Ed25519 signing and verification |
-| `src/upstream.ts` | MCP (JSON or SSE) and REST upstream calls, timeouts |
+| `src/upstream.ts` | MCP (JSON or SSE, with session) and REST upstream calls, timeouts |
+| `src/json-schema.ts` | Argument check against the tool's input schema |
+| `src/sealed-secret.ts` | AES-256-GCM sealing of upstream credentials |
 | `src/openkrill-auth.ts` | OpenKrill Connect token refresh, rotating refresh token in D1 |
 | `src/tools.ts` | Built-in governed tools, cost and price per call |
 | `src/tool-registry.ts` | Tools an operator adds from any MCP server at run time |
@@ -110,7 +122,8 @@ Checked against the source of each project on 2026-10-20.
 | Per-key MCP tool allowlist | Yes | No | Yes |
 | Budget that resets daily or monthly | Yes (`budget_duration`) | Yes, per time window | Yes, inside the atomic reservation |
 | Budget holds under parallel calls | Not documented | Not documented | Yes, one conditional update; 10 parallel calls on the live desk gave 1 x 200 |
-| Refund when the upstream fails or times out | Not documented | Not documented | Yes, same batch as the receipt |
+| Refund when the upstream fails or times out | Not documented | Not documented | Yes, same batch as the receipt, to the period it came from |
+| Argument check before any spend | No | No | Yes, against the upstream's own schema |
 | Signed per-call receipt, verifiable offline | No | No | Yes, Ed25519, also for refusals |
 | Upstream cost vs price per call | Spend only | Cost only | Cost (a configured rate), price and margin |
 | Providers, dashboards, SSO, caching | Many, mature | Many, mature | No: one Worker, a small console |
@@ -120,7 +133,7 @@ The desk is narrower: it is the money and proof layer for tool calls, and it can
 
 ## Evidence
 
-- `npm test`: 29 tests on real SQLite (`node:sqlite`) with the same migrations as production. Only the upstreams and the OpenKrill token endpoint are faked.
-- [`e2e-live-output.json`](./e2e-live-output.json): 31 of 31 live checks against the deployed desk, with real upstream calls, including a tool added at run time and the 4-part offline proof.
+- `npm test`: 39 tests on real SQLite (`node:sqlite`) with the same migrations as production. Only the upstreams and the OpenKrill token endpoint are faked.
+- [`e2e-live-output.json`](./e2e-live-output.json): 40 of 40 live checks against the deployed desk, with real upstream calls, including a tool added at run time, one with a sealed credential, a 400 on bad arguments before any charge, the in-band MCP receipt and the 4-part offline proof.
 - [`judge-steps.md`](./judge-steps.md): what a judge can repeat in a browser or with curl.
 - [`checklist.md`](./checklist.md): requirement mapping.
