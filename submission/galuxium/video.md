@@ -5,6 +5,7 @@
 - Every claim comes from the live desk, the tests or the live e2e run.
 - The demo part is a screen recording of the deployed desk, not a mock-up.
 - The video was made at commit c23a055b3, so it says 39 tests and 40 of 40 live checks. The current numbers are 51 tests and 43 of 43 live checks; the 3 new live checks are an upstream refusal mapped to 400 with nothing spent, and the 429 after 20 failed calls.
+- Two more points in the video are older than the desk: the narration says "more than 20 failed calls", while the desk answers 429 to the call after 20 failed calls; and step 6 shows a `cd-receipt-v3` payload, while the desk now signs `cd-receipt-v4`, whose hashes are over canonical JSON.
 
 | Time | On screen | Narration |
 | --- | --- | --- |
